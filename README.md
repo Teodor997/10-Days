@@ -1,4 +1,4 @@
-# Stoc Paleți — versiunea 1.1.0
+# 10-Days — versiunea 1.1.1
 
 Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Scanarea merge mereu, cu sau fără internet. Cât timp fișierul `config.js` nu conține o configurație Firebase, aplicația lucrează doar local și datele se adună prin fișiere de transfer. Cu Firebase configurat, mișcările ajung în timp real pe toate dispozitivele conectate (secțiunea 9).
 

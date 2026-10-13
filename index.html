@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b5a61">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Stoc Paleți</title>
+<title>10-Days</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -1002,7 +1002,7 @@ td.act{text-align:right;white-space:nowrap}
 (function () {
   'use strict';
   var C = window.StocCore;
-  var VERSION = '1.1.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var VERSION = '1.1.1', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
   var CONF = window.STOC_CONFIG || {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -1161,7 +1161,7 @@ td.act{text-align:right;white-space:nowrap}
   }
   function authMsg(e) {
     var c = e && e.code || '';
-    if (/wrong-password|invalid-credential|invalid-login|user-not-found|missing-password/.test(c)) return 'Cod de acces greșit.';
+    if (/wrong-password|invalid-credential|invalid-login|user-not-found|missing-password/.test(c)) return 'Cod de acces greșit. Dacă ești sigur de cod, verifică în Firebase (Authentication → Users) că există utilizatorul ' + (CONF.user || '') + '.';
     if (/network/.test(c)) return 'Nu există conexiune la internet. Prima conectare are nevoie de internet.';
     if (/too-many/.test(c)) return 'Prea multe încercări. Așteaptă câteva minute și încearcă din nou.';
     if (/operation-not-allowed/.test(c)) return 'Conectarea cu e-mail și parolă nu este activată în Firebase (Authentication → Sign-in method).';
@@ -1974,7 +1974,7 @@ td.act{text-align:right;white-space:nowrap}
     var h = '<div class="cards">' +
       '<div class="card"><h2>Acest dispozitiv</h2><label class="fld"><span>Nume</span><input class="inp" id="setName" data-s="devName" type="text" value="' + esc(cfg.devName) + '" placeholder="ex. Scanner Orkla" autocomplete="off"></label>' +
       '<label class="fld"><span>Depozit activ</span><select class="inp" id="setWh" data-s="wh">' + whOpts(cfg.wh, cfg.wh ? null : 'alege') + '</select></label>' +
-      '<p class="muted">Cod dispozitiv: ' + esc(cfg.devId) + ' · versiunea ' + VERSION + '</p>' +
+      '<p class="muted">10-Days · versiunea ' + VERSION + ' · cod dispozitiv ' + esc(cfg.devId) + '</p>' +
       '<p class="' + (Store.mem ? 'st-err' : 'muted') + '">' + (Store.mem ? 'Browserul nu permite salvarea datelor. Tot ce introduci se pierde la închidere.' : 'Datele stau pe acest dispozitiv' + (ui.persisted === true ? ', în stocare protejată.' : ui.persisted === false ? '. Browserul nu a acordat stocare protejată: salvează des fișierul de transfer.' : '.')) + '</p></div>' +
 
       (sync.on ? '<div class="card"><h2>Sincronizare online</h2><p>Stare: <b class="' + (syncState().c === 'ok' ? 'st-ok' : syncState().c === 'bad' ? 'st-err' : 'st-warn') + '">' + syncState().t + '</b></p><div class="btns"><button type="button" class="btn' + (sync.user ? '' : ' pri') + '" data-act="sync-dlg">' + (sync.user ? 'Detalii' : 'Conectează dispozitivul') + '</button></div></div>' : '') +

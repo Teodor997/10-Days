@@ -1,4 +1,4 @@
-/* Stoc Paleți — configurația instalării (proiectul Firebase „10-Days").
+/* 10-Days — configurația instalării (proiectul Firebase „10-Days").
    Aceste valori nu sunt secrete: accesul la date este protejat de codul de acces și de regulile Firestore. */
 window.STOC_CONFIG = {
   firebase: {
