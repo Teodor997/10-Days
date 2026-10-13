@@ -1,0 +1,21 @@
+rules_version = '2';
+// Stoc Paleți — reguli de acces. Se lipesc în consola Firebase: Firestore Database → Rules → Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Jurnalul de mișcări: doar dispozitivele conectate cu codul de acces pot citi și adăuga.
+    // Nimeni nu poate șterge documente și niciun document nu poate pierde mișcări.
+    match /log/{doc} {
+      allow read, create: if request.auth != null;
+      allow update: if request.auth != null
+                    && request.resource.data.ev.size() >= resource.data.ev.size();
+      allow delete: if false;
+    }
+
+    // Liste comune: depozite, destinații, locații.
+    match /meta/{doc} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
+  }
+}

@@ -19,7 +19,7 @@
   --check:#37474c; --check-ink:#2c3a3e; --check-t:#e1e7e8;
   --warn-ink:#7a4f00; --warn-t:#fcefc9; --warn-line:#e2c267;
   --wh0:#0b5a61; --wh1:#6a2c79; --wh2:#7a4a10; --wh3:#34444b;
-  --on-solid:#ffffff; --shade:rgba(10,16,18,.55);
+  --on-solid:#ffffff; --shade:rgba(10,16,18,.55); --dot-ok:#7fe3a4; --dot-warn:#ffd166; --dot-bad:#ff9d94;
   --f-ui:"Roboto Condensed","sans-serif-condensed","Arial Narrow","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
   --f-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   --f-code:"Roboto Mono","Cascadia Mono",Consolas,"DejaVu Sans Mono",ui-monospace,monospace;
@@ -32,7 +32,7 @@
   --check:#44565c; --check-ink:#b9c6c9; --check-t:#232b2e;
   --warn-ink:#f2c860; --warn-t:#33290d; --warn-line:#6e5a1c;
   --wh0:#0b5a61; --wh1:#6a2c79; --wh2:#7a4a10; --wh3:#34444b;
-  --on-solid:#ffffff; --shade:rgba(0,0,0,.66); color-scheme:dark } }
+  --on-solid:#ffffff; --shade:rgba(0,0,0,.66); --dot-ok:#7fe3a4; --dot-warn:#ffd166; --dot-bad:#ff9d94; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#0e1213; --surface:#181d1f; --surface2:#1f2629; --ink:#e8eeee; --muted:#9ba8ab; --line:#313b3e;
   --in:#1b7d41; --in-ink:#6bd596; --in-t:#12301e;
@@ -41,7 +41,7 @@
   --check:#44565c; --check-ink:#b9c6c9; --check-t:#232b2e;
   --warn-ink:#f2c860; --warn-t:#33290d; --warn-line:#6e5a1c;
   --wh0:#0b5a61; --wh1:#6a2c79; --wh2:#7a4a10; --wh3:#34444b;
-  --on-solid:#ffffff; --shade:rgba(0,0,0,.66); color-scheme:dark }
+  --on-solid:#ffffff; --shade:rgba(0,0,0,.66); --dot-ok:#7fe3a4; --dot-warn:#ffd166; --dot-bad:#ff9d94; color-scheme:dark }
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
@@ -251,13 +251,19 @@ td.act{text-align:right;white-space:nowrap}
   .kpi{padding:6px 10px} .kpi .n{font-size:24px}
 }
 
+/* ---- starea sincronizării, în bara de sus ---- */
+#topInfo[data-act]{cursor:pointer}
+.sy{white-space:nowrap}
+.sy::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:var(--dot-warn);vertical-align:baseline}
+.sy.ok::before{background:var(--dot-ok)} .sy.bad::before{background:var(--dot-bad)}
+
 </style>
 </head>
 <body>
 <div id="app" data-wh="3">
   <header id="top">
     <button id="whBtn" type="button" data-act="pick-wh" title="Schimbă depozitul activ"><span class="lbl">Depozit activ</span><b id="whName">alege</b></button>
-    <div id="topInfo"></div>
+    <div id="topInfo" data-act="sync-dlg" role="button" tabindex="0"></div>
   </header>
   <nav id="nav" aria-label="Secțiuni">
     <button type="button" data-tab="scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6v12M8 6v12M11 6v12M15 6v12M18 6v12M20.5 6v12"/></svg>Scanare</button>
@@ -296,6 +302,7 @@ td.act{text-align:right;white-space:nowrap}
 <div id="dlg" hidden></div>
 <div id="toast" hidden></div>
 
+<script src="config.js"></script>
 <script>
 /* Stoc Paleți — logica de bază (fără interfață). Rulează identic în browser și în Node (teste). */
 (function (root, factory) {
@@ -865,6 +872,44 @@ td.act{text-align:right;white-space:nowrap}
     });
     return { fresh: fresh, dup: dup, bad: bad };
   }
+  /* ---------- sincronizare online: gruparea mișcărilor în documente ---------- */
+  var LIVE_MAX = 100, BULK = 250;
+  function dayKey(ts) { var d = new Date(ts); return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); }
+  function cleanForUpload(e) { var o = {}; for (var k in e) if (k.charAt(0) !== '_' && e[k] !== undefined && e[k] !== null) o[k] = e[k]; return o; }
+  /* bucket = {key, seq, count} — documentul curent al dispozitivului. Scanările obișnuite se adaugă în același
+     document până la LIVE_MAX mișcări; un import mare se scrie în documente separate de câte BULK mișcări. */
+  function planUpload(pending, bucket, devId, now) {
+    var key = dayKey(now), b = bucket && bucket.key === key ? { key: key, seq: bucket.seq, count: bucket.count } : { key: key, seq: 0, count: 0 };
+    var writes = [], id = function () { return devId + '-' + b.key + '-' + pad(b.seq, 3); };
+    if (!pending.length) return { writes: writes, bucket: b };
+    if (pending.length > LIVE_MAX) {
+      if (b.count > 0) { b.seq++; b.count = 0; }
+      for (var i = 0; i < pending.length; i += BULK) {
+        var docId = id(); b.seq++;
+        writes.push({ id: docId, events: pending.slice(i, i + BULK), bucketAfter: { key: b.key, seq: b.seq, count: 0 } });
+      }
+    } else {
+      if (b.count + pending.length > LIVE_MAX) { b.seq++; b.count = 0; }
+      b.count += pending.length;
+      writes.push({ id: id(), events: pending.slice(), bucketAfter: { key: b.key, seq: b.seq, count: b.count } });
+    }
+    return { writes: writes, bucket: b };
+  }
+  /* Îmbină documentele primite de pe server cu jurnalul local. byId: Map id → mișcare locală. */
+  function mergeRemote(byId, docs) {
+    var fresh = [], confirm = [], seen = {}, maxU = 0;
+    (docs || []).forEach(function (d) {
+      if (!d || d.pending) return;
+      if (d.u > maxU) maxU = d.u;
+      (d.ev || []).forEach(function (e) {
+        if (!validEvent(e)) return;
+        var have = byId.get(e.id);
+        if (have) { if (!have._s) { have._s = 1; confirm.push(have); } }
+        else if (!seen[e.id]) { seen[e.id] = 1; var c = cleanForUpload(e); c._s = 1; fresh.push(c); }
+      });
+    });
+    return { fresh: fresh, confirm: confirm, maxU: maxU };
+  }
   function makeId(dev, ts, n) { return dev + '-' + ts.toString(36) + '-' + (n || Math.floor(Math.random() * 1679616)).toString(36); }
 
   return {
@@ -877,9 +922,79 @@ td.act{text-align:right;white-space:nowrap}
     excelSerial: excelSerial, fromExcelSerial: fromExcelSerial, parseDateText: parseDateText,
     buildImport: buildImport, buildLocImport: buildLocImport, templateAOA: templateAOA, cellText: cellText,
     evDetail: evDetail, stockList: stockList, locationList: locationList, stockAOA: stockAOA, movesAOA: movesAOA, locsAOA: locsAOA,
-    validEvent: validEvent, mergeEvents: mergeEvents, makeId: makeId
+    validEvent: validEvent, mergeEvents: mergeEvents, makeId: makeId,
+    dayKey: dayKey, cleanForUpload: cleanForUpload, planUpload: planUpload, mergeRemote: mergeRemote, LIVE_MAX: LIVE_MAX, BULK: BULK
   };
 });
+
+</script>
+<script>
+/* Stoc Paleți — legătura cu Firebase (Auth + Firestore). Tot ce atinge Firebase stă aici.
+   Colecții: log/{dispozitiv-zi-nr} = { d, u, ev:[mișcări] } · meta/config = { warehouses, dests } · meta/locs = { list:[{w,l}] } */
+(function () {
+  'use strict';
+  window.StocFirebaseRemote = function (conf) {
+    var fb = window.firebase;
+    if (!fb.apps.length) fb.initializeApp(conf.firebase);
+    var auth = fb.auth(), db = fb.firestore(), FV = fb.firestore.FieldValue;
+    if (conf.emulator) { // doar pentru teste locale
+      try { auth.useEmulator('http://' + conf.emulator.auth, { disableWarnings: true }); } catch (e) { }
+      if (conf.emulator.firestore) { var hp = conf.emulator.firestore.split(':'); db.useEmulator(hp[0], +hp[1]); }
+    }
+    function ms(t) { return t && typeof t.toMillis === 'function' ? t.toMillis() : 0; }
+    function union(list) { return FV.arrayUnion.apply(null, list); }
+    function remove(list) { return FV.arrayRemove.apply(null, list); }
+    var meta = db.collection('meta');
+    return {
+      onAuth: function (cb) { return auth.onAuthStateChanged(function (u) { cb(!!u); }); },
+      signIn: function (code) { return auth.signInWithEmailAndPassword(conf.user, code).then(function () { return true; }); },
+      signOut: function () { return auth.signOut(); },
+      /* Adaugă mișcări în documentul dat. arrayUnion face operația repetabilă: retrimiterea nu dublează nimic. */
+      append: function (id, dev, events) {
+        return db.collection('log').doc(id).set({ d: dev, u: FV.serverTimestamp(), ev: union(events) }, { merge: true });
+      },
+      /* Ascultă documentele modificate după momentul „since" (ms). cb(docs, fromCache). */
+      listenLog: function (since, cb, err) {
+        return db.collection('log').where('u', '>', fb.firestore.Timestamp.fromMillis(since)).orderBy('u')
+          .onSnapshot({ includeMetadataChanges: true }, function (snap) {
+            var docs = [];
+            snap.docChanges({ includeMetadataChanges: true }).forEach(function (ch) {
+              if (ch.type === 'removed') return;
+              var d = ch.doc.data();
+              docs.push({ id: ch.doc.id, u: ms(d.u), ev: d.ev || [], pending: ch.doc.metadata.hasPendingWrites });
+            });
+            cb(docs, snap.metadata.fromCache);
+          }, err);
+      },
+      /* p = { addWh, delWh, addDest, delDest, addLocs:[{w,l}] } */
+      metaPatch: function (p) {
+        var jobs = [], add = {}, del = {}, hasAdd = false, hasDel = false;
+        if (p.addWh && p.addWh.length) { add.warehouses = union(p.addWh); hasAdd = true; }
+        if (p.addDest && p.addDest.length) { add.dests = union(p.addDest); hasAdd = true; }
+        if (p.delWh && p.delWh.length) { del.warehouses = remove(p.delWh); hasDel = true; }
+        if (p.delDest && p.delDest.length) { del.dests = remove(p.delDest); hasDel = true; }
+        if (hasAdd) jobs.push(meta.doc('config').set(add, { merge: true }));
+        if (hasDel) jobs.push(meta.doc('config').set(del, { merge: true }));
+        if (p.addLocs && p.addLocs.length) {
+          for (var i = 0; i < p.addLocs.length; i += 2000) jobs.push(meta.doc('locs').set({ list: union(p.addLocs.slice(i, i + 2000)) }, { merge: true }));
+        }
+        return Promise.all(jobs);
+      },
+      /* cb({warehouses, dests, locs}, fromCache) — câmpurile lipsesc dacă documentul nu există încă. */
+      listenMeta: function (cb, err) {
+        return meta.onSnapshot({ includeMetadataChanges: true }, function (snap) {
+          var out = {};
+          snap.forEach(function (doc) {
+            var d = doc.data();
+            if (doc.id === 'config') { out.warehouses = d.warehouses || []; out.dests = d.dests || []; }
+            else if (doc.id === 'locs') out.locs = d.list || [];
+          });
+          cb(out, snap.metadata.fromCache || snap.metadata.hasPendingWrites);
+        }, err);
+      }
+    };
+  };
+})();
 
 </script>
 <script>
@@ -887,7 +1002,8 @@ td.act{text-align:right;white-space:nowrap}
 (function () {
   'use strict';
   var C = window.StocCore;
-  var VERSION = '1.0.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var VERSION = '1.1.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var CONF = window.STOC_CONFIG || {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function codeH(p) {
@@ -964,7 +1080,8 @@ td.act{text-align:right;white-space:nowrap}
   /* ================= stare ================= */
   function rnd(n) { var s = ''; while (s.length < n) s += Math.floor(Math.random() * 36).toString(36); return s.toUpperCase(); }
   function defaults() {
-    return { devId: rnd(4), devName: '', wh: '', warehouses: ['Orkla', 'Douglas'], dests: ['TC'], dest: 'TC', sound: true, vibrate: true, auto: true, kb: false, lastExport: 0, unsent: 0, dirtySince: 0, setup: false, mode: 'IN' };
+    return { devId: rnd(4), devName: '', wh: '', warehouses: ['Orkla', 'Douglas'], dests: ['TC'], dest: 'TC', sound: true, vibrate: true, auto: true, kb: false, lastExport: 0, unsent: 0, dirtySince: 0, setup: false, mode: 'IN',
+      cursor: 0, bucket: null, metaAdd: { wh: [], dest: [] }, metaDel: { wh: [], dest: [] }, metaInit: false, syncAsked: false };
   }
   var cfg = defaults();
   var S = { events: [], st: C.computeState([], []), byId: new Map(), locs: [] };
@@ -974,11 +1091,13 @@ td.act{text-align:right;white-space:nowrap}
   var lastTs = 0, bc = null;
 
   function saveCfg() { return Store.setMeta('cfg', cfg).catch(function () { }); }
+  function followWh() { fs.wh = fm.wh = cfg.wh || ''; fs.limit = fm.limit = 300; } // Stoc și Mișcări arată depozitul activ
   function rebuild() {
     C.sortEvents(S.events);
     S.byId = new Map();
     S.events.forEach(function (e) { S.byId.set(e.id, e); });
     S.st = C.computeState(S.events, S.locs);
+    countPending();
   }
   function loadAll() {
     return Promise.all([Store.allEvents(), Store.getMeta('cfg'), Store.getMeta('locs')]).then(function (r) {
@@ -986,6 +1105,7 @@ td.act{text-align:right;white-space:nowrap}
       if (r[1]) { var d = defaults(); for (var k in r[1]) d[k] = r[1][k]; cfg = d; }
       S.locs = r[2] || [];
       ui.mode = cfg.mode || 'IN';
+      if (ui.whSeen !== cfg.wh) { ui.whSeen = cfg.wh; followWh(); }
       rebuild();
     });
   }
@@ -1012,6 +1132,7 @@ td.act{text-align:right;white-space:nowrap}
       if (inc) evs.forEach(function (e) { C.applyEvent(S.st, e); }); else rebuild();
       cfg.unsent = (cfg.unsent || 0) + evs.length;
       if (!cfg.dirtySince) cfg.dirtySince = Date.now();
+      countPending(); scheduleFlush();
       saveCfg(); notifyTabs(); renderChrome();
       return evs;
     });
@@ -1022,6 +1143,211 @@ td.act{text-align:right;white-space:nowrap}
   }
   function voidEvents(list) {
     return addEvents(list.map(function (t) { return { type: 'VOID', ref: t.id, p: t.p, wh: t.wh }; }), 'manual', false);
+  }
+
+  /* ================= sincronizare online ================= */
+  var sync = { on: !!(CONF.firebase || window.__stocRemote) && BUILD === 'pwa', remote: null, user: false, authKnown: false, primed: false, live: false,
+    flushing: false, timer: null, retry: 0, err: '', lastOk: 0, npend: 0, unsub: null, unsubMeta: null };
+  var syncQ = Promise.resolve();
+  function countPending() { var n = 0; for (var i = 0; i < S.events.length; i++) { var e = S.events[i]; if (!e._s && e.src !== 'demo') n++; } sync.npend = n; return n; }
+  function syncState() {
+    if (!sync.on) return null;
+    if (!sync.authKnown) return { c: 'warn', t: 'se conectează' };
+    if (!sync.user) return { c: 'bad', t: 'neconectat' };
+    if (sync.err) return { c: 'bad', t: 'eroare sincronizare' };
+    if (sync.npend) return { c: 'warn', t: sync.npend + ' de trimis' };
+    if (sync.live && navigator.onLine !== false) return { c: 'ok', t: 'sincronizat' };
+    return { c: 'warn', t: 'fără conexiune' };
+  }
+  function authMsg(e) {
+    var c = e && e.code || '';
+    if (/wrong-password|invalid-credential|invalid-login|user-not-found|missing-password/.test(c)) return 'Cod de acces greșit.';
+    if (/network/.test(c)) return 'Nu există conexiune la internet. Prima conectare are nevoie de internet.';
+    if (/too-many/.test(c)) return 'Prea multe încercări. Așteaptă câteva minute și încearcă din nou.';
+    if (/operation-not-allowed/.test(c)) return 'Conectarea cu e-mail și parolă nu este activată în Firebase (Authentication → Sign-in method).';
+    return 'Conectarea a eșuat: ' + (e && e.message || c || e);
+  }
+  function fsMsg(e) {
+    var c = e && e.code || '';
+    if (/permission-denied/.test(c)) return 'Serverul a refuzat accesul. Verifică regulile Firestore (fișierul firestore.rules din pachet).';
+    if (/unavailable|deadline/.test(c)) return 'Serverul nu răspunde. Se reîncearcă automat.';
+    if (/resource-exhausted/.test(c)) return 'Limita zilnică a planului gratuit Firebase a fost atinsă. Sincronizarea se reia mâine; scanările rămân salvate pe dispozitiv.';
+    return (e && e.message) || String(e);
+  }
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      var el = document.createElement('script'); el.src = src;
+      el.onload = function () { res(); }; el.onerror = function () { rej(new Error('Nu am putut încărca ' + src)); };
+      document.head.appendChild(el);
+    });
+  }
+  function loadRemote() {
+    if (window.__stocRemote) return Promise.resolve(window.__stocRemote(CONF));
+    return loadScript('vendor/firebase-app-compat.js').then(function () { return loadScript('vendor/firebase-auth-compat.js'); })
+      .then(function () { return loadScript('vendor/firebase-firestore-compat.js'); }).then(function () { return window.StocFirebaseRemote(CONF); });
+  }
+  function softRefresh() { // reafișează după date venite din rețea, fără să strice ce tastează omul
+    renderChrome();
+    if (!$('dlg').hidden) { ui.stale = true; return; }
+    var a = document.activeElement, typing = a && a !== inp && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName);
+    if (ui.tab === 'scan') renderScan();
+    else if (ui.tab === 'stock') { if (typing) renderStockBody(); else renderStock(); }
+    else if (ui.tab === 'moves') renderMovesBody();
+    else if (!typing) renderTab();
+  }
+  function syncInit() {
+    if (!sync.on) return;
+    loadRemote().then(function (r) {
+      sync.remote = r;
+      r.onAuth(function (signed) {
+        sync.user = !!signed; sync.authKnown = true;
+        if (signed) syncStart(); else syncStop();
+        renderChrome();
+        if (!signed && cfg.setup && !cfg.syncAsked && $('dlg').hidden) { cfg.syncAsked = true; saveCfg(); syncDlg(); }
+        else if (ui.syncDlgOpen) syncDlg();
+      });
+    }).catch(function (e) { sync.err = e.message || String(e); renderChrome(); setTimeout(syncInit, 30000); });
+  }
+  function syncStop() {
+    if (sync.unsub) { try { sync.unsub(); } catch (e) { } sync.unsub = null; }
+    if (sync.unsubMeta) { try { sync.unsubMeta(); } catch (e) { } sync.unsubMeta = null; }
+    sync.primed = false; sync.live = false; clearTimeout(sync.timer);
+  }
+  function syncStart() {
+    syncStop(); sync.err = '';
+    var since = Math.max(0, (cfg.cursor || 0) - 120000);
+    var onErr = function (e) { sync.err = fsMsg(e); sync.live = false; renderChrome(); if (ui.syncDlgOpen) syncDlg(); setTimeout(function () { if (sync.user) syncStart(); }, 30000); };
+    sync.unsub = sync.remote.listenLog(since, onRemoteDocs, onErr);
+    sync.unsubMeta = sync.remote.listenMeta(onRemoteMeta, function () { });
+  }
+  function onRemoteDocs(docs, fromCache) {
+    syncQ = syncQ.then(function () {
+      var m = C.mergeRemote(S.byId, docs), store = m.fresh.concat(m.confirm);
+      return (store.length ? Store.put(store) : Promise.resolve()).then(function () {
+        if (m.fresh.length) { m.fresh.forEach(function (e) { S.events.push(e); }); rebuild(); notifyTabs(); }
+        else if (m.confirm.length) countPending();
+        if (m.maxU > (cfg.cursor || 0)) { cfg.cursor = m.maxU; saveCfg(); }
+        if (!fromCache) {
+          var first = !sync.primed;
+          sync.primed = true; sync.live = true; sync.lastOk = Date.now();
+          if (first || sync.npend) scheduleFlush(first ? 0 : 500);
+        } else sync.live = false;
+        if (m.fresh.length) softRefresh(); else renderChrome();
+        if (ui.syncDlgOpen && $('syncCode') == null) syncDlg();
+      });
+    }).catch(function (e) { sync.err = 'Salvarea locală a eșuat: ' + (e && e.message || e); renderChrome(); });
+  }
+  function scheduleFlush(ms) {
+    if (!sync.on || !sync.user) return;
+    clearTimeout(sync.timer);
+    sync.timer = setTimeout(flush, ms == null ? 500 : ms);
+  }
+  function flush() {
+    if (!sync.user || !sync.primed || sync.flushing || !sync.remote) return;
+    pushMeta();
+    var pend = S.events.filter(function (e) { return !e._s && e.src !== 'demo'; });
+    sync.npend = pend.length;
+    if (!pend.length) { renderChrome(); return; }
+    sync.flushing = true;
+    var plan = C.planUpload(pend, cfg.bucket, cfg.devId, Date.now()), i = 0;
+    var next = function () {
+      if (i >= plan.writes.length) {
+        sync.flushing = false; sync.retry = 0; sync.lastOk = Date.now();
+        if (countPending()) scheduleFlush(0);
+        renderChrome(); if (ui.syncDlgOpen) syncDlg();
+        return;
+      }
+      var w = plan.writes[i++];
+      sync.remote.append(w.id, cfg.devId, w.events.map(C.cleanForUpload)).then(function () {
+        w.events.forEach(function (e) { e._s = 1; });
+        cfg.bucket = w.bucketAfter; saveCfg();
+        return Store.put(w.events);
+      }).then(function () { sync.err = ''; sync.live = true; countPending(); renderChrome(); next(); })
+        .catch(function (e) {
+          sync.flushing = false; sync.err = fsMsg(e); sync.retry++;
+          clearTimeout(sync.timer); sync.timer = setTimeout(flush, Math.min(120000, 5000 * sync.retry));
+          renderChrome(); if (ui.syncDlgOpen) syncDlg();
+        });
+    };
+    next();
+  }
+  /* liste comune: depozite, destinații, locații */
+  function metaQueue(kind, value, del) {
+    var a = del ? cfg.metaDel : cfg.metaAdd, b = del ? cfg.metaAdd : cfg.metaDel;
+    if (a[kind].indexOf(value) < 0) a[kind].push(value);
+    b[kind] = b[kind].filter(function (x) { return x !== value; });
+    saveCfg(); pushMeta();
+  }
+  function pushMeta() {
+    if (!sync.user || !sync.primed || !sync.remote || sync.metaBusy) return;
+    var locs = S.locs.filter(function (l) { return !l.demo && !l.up; });
+    var p = { addWh: cfg.metaAdd.wh.slice(), addDest: cfg.metaAdd.dest.slice(), delWh: cfg.metaDel.wh.slice(), delDest: cfg.metaDel.dest.slice(),
+      addLocs: locs.map(function (l) { return { w: l.wh, l: l.loc }; }) };
+    if (!p.addWh.length && !p.addDest.length && !p.delWh.length && !p.delDest.length && !p.addLocs.length) return;
+    sync.metaBusy = true;
+    sync.remote.metaPatch(p).then(function () {
+      var drop = function (list, sent) { return list.filter(function (x) { return sent.indexOf(x) < 0; }); };
+      cfg.metaAdd.wh = drop(cfg.metaAdd.wh, p.addWh); cfg.metaAdd.dest = drop(cfg.metaAdd.dest, p.addDest);
+      cfg.metaDel.wh = drop(cfg.metaDel.wh, p.delWh); cfg.metaDel.dest = drop(cfg.metaDel.dest, p.delDest);
+      locs.forEach(function (l) { l.up = 1; });
+      sync.metaBusy = false; saveCfg();
+      return Store.setMeta('locs', S.locs);
+    }).catch(function () { sync.metaBusy = false; });
+  }
+  function onRemoteMeta(m, notFinal) {
+    if (notFinal) return;
+    var changed = false, locChanged = false;
+    if (!cfg.metaInit) { // prima legătură: listele locale care lipsesc de pe server urcă acolo
+      cfg.warehouses.forEach(function (w) { if ((m.warehouses || []).indexOf(w) < 0 && cfg.metaAdd.wh.indexOf(w) < 0) cfg.metaAdd.wh.push(w); });
+      cfg.dests.forEach(function (d) { if ((m.dests || []).indexOf(d) < 0 && cfg.metaAdd.dest.indexOf(d) < 0) cfg.metaAdd.dest.push(d); });
+      cfg.metaInit = true; changed = true;
+    }
+    var apply = function (remote, add, del, cur, must) {
+      if (!remote) return null;
+      var out = remote.filter(function (x) { return typeof x === 'string' && x && del.indexOf(x) < 0; });
+      add.concat(must ? [must] : []).forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); });
+      return out.join('\u0001') === cur.join('\u0001') ? null : out;
+    };
+    var w = apply(m.warehouses, cfg.metaAdd.wh, cfg.metaDel.wh, cfg.warehouses, cfg.wh);
+    if (w) { cfg.warehouses = w; changed = true; }
+    var d = apply(m.dests, cfg.metaAdd.dest, cfg.metaDel.dest, cfg.dests, null);
+    if (d && d.length) { cfg.dests = d; if (d.indexOf(cfg.dest) < 0) cfg.dest = d[0]; changed = true; }
+    if (m.locs) {
+      var have = {};
+      S.locs.forEach(function (l) { have[C.lkey(l.wh, l.loc)] = l; });
+      m.locs.forEach(function (x) {
+        if (!x || !x.w || !x.l) return;
+        var k = C.lkey(x.w, x.l);
+        if (have[k]) { if (!have[k].up && !have[k].demo) { have[k].up = 1; locChanged = true; } }
+        else { have[k] = { wh: x.w, loc: x.l, up: 1 }; S.locs.push(have[k]); locChanged = true; changed = true; }
+      });
+    }
+    if (changed || locChanged) {
+      saveCfg();
+      if (locChanged) { Store.setMeta('locs', S.locs).catch(function () { }); rebuild(); }
+      softRefresh();
+    }
+    pushMeta();
+  }
+  function syncDlg(msg) {
+    var h = '<h2>Sincronizare online</h2>', st = syncState();
+    ui.syncDlgOpen = true;
+    if (!sync.on) h += '<p>Această instalare lucrează doar local. Datele se mută între dispozitive prin fișierul de transfer din pagina Date.</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>';
+    else if (!sync.remote || !sync.authKnown) h += '<p>' + (sync.err ? esc(sync.err) : 'Se pregătește conexiunea…') + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Închide</button></div>';
+    else if (!sync.user) {
+      h += '<p>Conectează acest dispozitiv ca să trimită și să primească mișcările în timp real. Codul de acces se introduce o singură dată; prima conectare are nevoie de internet.</p>' +
+        (sync.npend ? '<div class="note"><span>Pe acest dispozitiv există deja <b>' + plural(sync.npend, 'mișcare', 'mișcări') + '</b>. După conectare vor fi trimise în baza comună. Dacă sunt doar teste, șterge-le întâi din Setări → „Șterge toate datele de pe dispozitiv".</span></div>' : '') +
+        '<label class="fld"><span>Cod de acces</span><input class="inp" id="syncCode" data-focus type="password" autocomplete="off"></label>' +
+        (msg ? '<p class="st-err">' + esc(msg) + '</p>' : '') +
+        '<div class="foot"><button type="button" class="btn" data-act="dlg-x">Mai târziu</button><button type="button" class="btn pri" data-act="sync-in">Conectează</button></div>';
+    } else {
+      h += '<p>Stare: <b class="' + (st.c === 'ok' ? 'st-ok' : st.c === 'bad' ? 'st-err' : 'st-warn') + '">' + st.t + '</b></p>' +
+        '<p>' + (sync.npend ? plural(sync.npend, 'mișcare așteaptă', 'mișcări așteaptă') + ' să fie trimise. Rămân salvate pe dispozitiv și pleacă singure când revine conexiunea.' : 'Toate mișcările de pe acest dispozitiv sunt pe server.') + '</p>' +
+        (sync.lastOk ? '<p class="muted">Ultima legătură reușită cu serverul: ' + C.fmtDT(sync.lastOk) + '</p>' : '') +
+        (sync.err ? '<p class="st-err">' + esc(sync.err) + '</p>' : '') +
+        '<div class="foot"><button type="button" class="btn danger" data-act="sync-off">Deconectează</button><button type="button" class="btn" data-act="sync-now">Trimite acum</button><button type="button" class="btn pri" data-act="dlg-x">Închide</button></div>';
+    }
+    openDlg(h, false, function () { ui.syncDlgOpen = false; });
   }
 
   /* ================= semnale pentru operator ================= */
@@ -1075,6 +1401,7 @@ td.act{text-align:right;white-space:nowrap}
     var f = dlgOnClose; dlgOnClose = null;
     if (askResolve) { var r = askResolve; askResolve = null; r(false); }
     if (f) f();
+    if (ui.stale && $('dlg').hidden) { ui.stale = false; renderTab(); }
     focusScan();
   }
   function ask(title, text, okLabel, danger) {
@@ -1091,9 +1418,11 @@ td.act{text-align:right;white-space:nowrap}
     $('whName').textContent = cfg.wh || 'alege';
     var n = 0;
     S.st.stock.forEach(function (s) { if (s.wh === cfg.wh) n++; });
+    var sy = syncState();
     $('topInfo').innerHTML = '<div>' + esc(cfg.devName || 'Dispozitiv ' + cfg.devId) + '</div><div>' +
-      (Store.mem ? '<span class="bad">DATELE NU SE SALVEAZĂ</span>' : cfg.wh ? '<b>' + n + '</b> ' + (n === 1 ? 'palet' : 'paleți') + ' în stoc' : '') + '</div>';
-    $('dataDot').hidden = !(cfg.unsent && cfg.dirtySince && Date.now() - cfg.dirtySince > 20 * 3600000);
+      (Store.mem ? '<span class="bad">DATELE NU SE SALVEAZĂ</span>' : (cfg.wh ? '<b>' + n + '</b> ' + (n === 1 ? 'palet' : 'paleți') + (sy ? '' : ' în stoc') : '') +
+        (sy ? (cfg.wh ? ' · ' : '') + '<span class="sy ' + sy.c + '">' + sy.t + '</span>' : '')) + '</div>';
+    $('dataDot').hidden = sync.user || !(cfg.unsent && cfg.dirtySince && Date.now() - cfg.dirtySince > 20 * 3600000);
   }
   function showTab(tab) {
     ui.tab = tab;
@@ -1258,8 +1587,9 @@ td.act{text-align:right;white-space:nowrap}
   function renderStock() {
     var st = S.st, cnt = {}, today = {}, noloc = 0, conf = 0, d0 = new Date(); d0.setHours(0, 0, 0, 0); d0 = d0.getTime();
     cfg.warehouses.forEach(function (w) { cnt[w] = 0; today[w] = [0, 0]; });
-    st.stock.forEach(function (s) { cnt[s.wh] = (cnt[s.wh] || 0) + 1; if (!s.loc) noloc++; });
-    st.byLoc.forEach(function (set) { if (set.size > 1) conf++; });
+    if (fs.wh && cfg.warehouses.indexOf(fs.wh) < 0) fs.wh = '';
+    st.stock.forEach(function (s) { cnt[s.wh] = (cnt[s.wh] || 0) + 1; if (!s.loc && (!fs.wh || s.wh === fs.wh)) noloc++; });
+    st.byLoc.forEach(function (set, k) { if (set.size > 1 && (!fs.wh || k.split('\u0001')[0] === fs.wh)) conf++; });
     for (var i = S.events.length - 1; i >= 0 && S.events[i].ts >= d0; i--) {
       var e = S.events[i];
       if (st.voided.has(e.id) || !today[e.wh]) continue;
@@ -1267,6 +1597,7 @@ td.act{text-align:right;white-space:nowrap}
     }
     var h = demoNote() + '<div class="kpis">';
     cfg.warehouses.forEach(function (w, ix) {
+      if (fs.wh && w !== fs.wh) return;
       h += '<div class="kpi" data-wh="' + Math.min(ix, 3) + '"><div class="l">' + esc(w) + '</div><div class="n">' + (cnt[w] || 0) + '</div><div class="s"><span class="hide-sm">paleți în stoc · </span>azi +' + today[w][0] + ' / −' + today[w][1] + '</div></div>';
     });
     if (noloc) h += '<div class="kpi alert"><div class="l">Fără locație</div><div class="n">' + noloc + '</div><div class="s">paleți în stoc a căror locație a fost preluată</div></div>';
@@ -1333,7 +1664,7 @@ td.act{text-align:right;white-space:nowrap}
       if (a && e.ts < a) break;
       if (b && e.ts >= b) continue;
       if (fm.type && e.type !== fm.type) continue;
-      if (fm.wh && e.wh !== fm.wh) continue;
+      if (fm.wh && e.wh !== fm.wh && e.fromWh !== fm.wh) continue;
       if (nd && (e.p || '').indexOf(nd.id) < 0 && (e.p || '').indexOf(nd.raw) < 0 && (e.loc || '').indexOf(nd.raw) < 0 && (e.fromLoc || '').indexOf(nd.raw) < 0) continue;
       out.push(e);
     }
@@ -1478,7 +1809,7 @@ td.act{text-align:right;white-space:nowrap}
       '<div class="btns"><button type="button" class="btn pri" data-act="pick-file" data-for="impFile">Alege fișierul</button><button type="button" class="btn" data-act="tpl">Descarcă șablonul</button></div>' +
       '<input type="file" id="impFile" accept=".xlsx,.xls,.xlsm,.csv,.txt" hidden><p class="muted" style="margin-top:10px">Coloane recunoscute: Tip, Palet (sau SSCC), Depozit, Locație, Data, Destinație, Observații. Doar coloana Palet este obligatorie. Vezi fiecare rând înainte de a confirma.</p></div>' +
 
-      '<div class="card"><h2>Transfer între dispozitive</h2><p>Cât timp aplicația lucrează fără internet, fiecare dispozitiv își ține propriile date. Ca să le aduni: salvezi fișierul de pe fiecare scanner și îl încarci pe celălalt dispozitiv. Mișcările identice nu se dublează, deci poți încărca același fișier de mai multe ori.</p>' +
+      '<div class="card"><h2>' + (sync.user ? 'Copie de siguranță' : 'Transfer între dispozitive') + '</h2><p>' + (sync.user ? 'Dispozitivul este conectat online, deci mișcările ajung singure pe celelalte dispozitive. Fișierul de transfer rămâne util ca o copie de siguranță ținută pe PC.' : 'Cât timp aplicația lucrează fără internet, fiecare dispozitiv își ține propriile date. Ca să le aduni: salvezi fișierul de pe fiecare scanner și îl încarci pe celălalt dispozitiv. Mișcările identice nu se dublează, deci poți încărca același fișier de mai multe ori.') + '</p>' +
       '<p><b>' + (un ? plural(un, 'mișcare nouă', 'mișcări noi') + ' de la ultimul fișier salvat' : (cfg.lastExport ? 'Toate mișcările sunt în ultimul fișier salvat' : 'Încă nu ai salvat niciun fișier')) + '</b>' + (cfg.lastExport ? ' · ultimul fișier: ' + C.fmtDT(cfg.lastExport) : '') + '</p>' +
       '<div class="btns"><button type="button" class="btn pri" data-act="sync-out">Salvează fișierul de transfer</button><button type="button" class="btn" data-act="pick-file" data-for="syncFile">Încarcă fișiere de transfer</button></div>' +
       '<input type="file" id="syncFile" accept=".json,application/json" multiple hidden><p class="muted" style="margin-top:10px">Fișierul de transfer este și copia de siguranță a dispozitivului. Păstrează-l pe PC.</p></div>' +
@@ -1525,7 +1856,7 @@ td.act{text-align:right;white-space:nowrap}
       S.locs.forEach(function (l) { have[C.lkey(l.wh, l.loc)] = 1; });
       r.locs.forEach(function (l) { var k = C.lkey(l.wh, l.loc); if (!have[k]) { have[k] = 1; S.locs.push(l); added++; } });
       return Store.setMeta('locs', S.locs).then(function () {
-        rebuild(); notifyTabs(); renderTab();
+        rebuild(); notifyTabs(); renderTab(); pushMeta();
         toast(plural(added, 'locație nouă adăugată', 'locații noi adăugate') + (r.bad ? ' · ' + r.bad + ' rânduri cu depozit necunoscut, sărite' : '') + '.');
       });
     }).catch(function (e) { toast(e.message || String(e)); });
@@ -1534,8 +1865,8 @@ td.act{text-align:right;white-space:nowrap}
     var payload = {
       app: 'stoc-paleti', v: 1, exportedAt: Date.now(), device: { id: cfg.devId, name: cfg.devName },
       warehouses: cfg.warehouses, dests: cfg.dests,
-      locs: S.locs.filter(function (l) { return !l.demo; }),
-      events: S.events.filter(function (e) { return e.src !== 'demo'; })
+      locs: S.locs.filter(function (l) { return !l.demo; }).map(function (l) { return { wh: l.wh, loc: l.loc }; }),
+      events: S.events.filter(function (e) { return e.src !== 'demo'; }).map(C.cleanForUpload)
     };
     var name = 'stoc-transfer-' + (C.fold(cfg.devName) || cfg.devId.toLowerCase()) + '-' + C.stamp(Date.now()) + '.json';
     saveFile(name, JSON.stringify(payload), 'application/json').then(function (ok) {
@@ -1554,7 +1885,7 @@ td.act{text-align:right;white-space:nowrap}
         try { data = JSON.parse(decodeText(buf)); } catch (e) { data = null; }
         if (!data || data.app !== 'stoc-paleti' || !Array.isArray(data.events)) { badFiles.push(f.name); return; }
         var m = C.mergeEvents(have, data.events);
-        m.fresh.forEach(function (e) { have.add(e.id); fresh.push(e); });
+        m.fresh.forEach(function (e) { have.add(e.id); fresh.push(C.cleanForUpload(e)); });
         dup += m.dup; bad += m.bad;
         (data.warehouses || []).forEach(function (w) { if (typeof w === 'string' && w && cfg.warehouses.indexOf(w) < 0) { cfg.warehouses.push(w); newWh++; } });
         (data.dests || []).forEach(function (d) { if (typeof d === 'string' && d && cfg.dests.indexOf(d) < 0) cfg.dests.push(d); });
@@ -1565,7 +1896,7 @@ td.act{text-align:right;white-space:nowrap}
       .then(function () { return Promise.all([saveCfg(), Store.setMeta('locs', S.locs)]); })
       .then(function () {
         fresh.forEach(function (e) { S.events.push(e); });
-        rebuild(); notifyTabs(); renderTab();
+        rebuild(); notifyTabs(); renderTab(); scheduleFlush(0); pushMeta();
         openDlg('<h2>Date încărcate</h2><p><b>' + plural(fresh.length, 'mișcare nouă', 'mișcări noi') + '</b> adăugate. ' + dup + ' existau deja și au fost sărite.' + (bad ? ' ' + bad + ' înregistrări invalide au fost ignorate.' : '') + '</p>' +
           (newWh ? '<p>' + plural(newWh, 'depozit nou adăugat', 'depozite noi adăugate') + ' în listă.</p>' : '') +
           (badFiles.length ? '<p class="st-err">Fișiere nerecunoscute: ' + badFiles.map(esc).join(', ') + '. Alege fișierele salvate cu „Salvează fișierul de transfer".</p>' : '') +
@@ -1646,6 +1977,7 @@ td.act{text-align:right;white-space:nowrap}
       '<p class="muted">Cod dispozitiv: ' + esc(cfg.devId) + ' · versiunea ' + VERSION + '</p>' +
       '<p class="' + (Store.mem ? 'st-err' : 'muted') + '">' + (Store.mem ? 'Browserul nu permite salvarea datelor. Tot ce introduci se pierde la închidere.' : 'Datele stau pe acest dispozitiv' + (ui.persisted === true ? ', în stocare protejată.' : ui.persisted === false ? '. Browserul nu a acordat stocare protejată: salvează des fișierul de transfer.' : '.')) + '</p></div>' +
 
+      (sync.on ? '<div class="card"><h2>Sincronizare online</h2><p>Stare: <b class="' + (syncState().c === 'ok' ? 'st-ok' : syncState().c === 'bad' ? 'st-err' : 'st-warn') + '">' + syncState().t + '</b></p><div class="btns"><button type="button" class="btn' + (sync.user ? '' : ' pri') + '" data-act="sync-dlg">' + (sync.user ? 'Detalii' : 'Conectează dispozitivul') + '</button></div></div>' : '') +
       '<div class="card"><h2>Scanare</h2>' +
       '<label class="chk"><input type="checkbox" id="setSound" data-s="sound"' + (cfg.sound ? ' checked' : '') + '>Sunet la fiecare scanare</label>' +
       '<label class="chk"><input type="checkbox" id="setVib" data-s="vibrate"' + (cfg.vibrate ? ' checked' : '') + '>Vibrație</label>' +
@@ -1716,9 +2048,22 @@ td.act{text-align:right;white-space:nowrap}
     'wh-set': function (el) {
       var n = $('setupName');
       if (n) cfg.devName = n.value.trim();
-      cfg.wh = el.getAttribute('data-w'); cfg.setup = true;
+      var firstRun = !cfg.setup;
+      cfg.wh = el.getAttribute('data-w'); cfg.setup = true; ui.whSeen = cfg.wh; followWh();
       ui.slots = null; ui.pending = null; ui.result = null;
       saveCfg(); closeDlg(); renderTab();
+      if (firstRun && sync.on && sync.authKnown && !sync.user) { cfg.syncAsked = true; saveCfg(); syncDlg(); }
+    },
+    'sync-dlg': function () { syncDlg(); },
+    'sync-in': function () {
+      var code = ($('syncCode').value || '').trim();
+      if (!code) { syncDlg('Scrie codul de acces.'); return; }
+      sync.remote.signIn(code).then(function () { toast('Dispozitiv conectat.'); }).catch(function (e) { syncDlg(authMsg(e)); });
+    },
+    'sync-now': function () { sync.retry = 0; sync.err = ''; if (!sync.primed) syncStart(); else { clearTimeout(sync.timer); flush(); } syncDlg(); },
+    'sync-off': function () {
+      ask('Deconectezi dispozitivul?', 'Datele rămân pe dispozitiv, dar mișcările noi nu mai sunt trimise și nu mai primești mișcările celorlalte dispozitive până la reconectare.', 'Deconectează', true)
+        .then(function (yes) { if (yes) sync.remote.signOut(); else syncDlg(); });
     },
     'pick-dest': function () { destDlg(); },
     'dest-set': function (el) { cfg.dest = el.getAttribute('data-d'); saveCfg(); closeDlg(); renderTab(); },
@@ -1774,27 +2119,28 @@ td.act{text-align:right;white-space:nowrap}
       var v = $('newWh').value.trim();
       if (!v) return;
       if (cfg.warehouses.some(function (w) { return C.fold(w) === C.fold(v); })) { toast('Depozitul există deja.'); return; }
-      cfg.warehouses.push(v); saveCfg(); renderTab();
+      cfg.warehouses.push(v); saveCfg(); metaQueue('wh', v, false); renderTab();
     },
-    'wh-del': function (el) { var w = el.getAttribute('data-w'); cfg.warehouses = cfg.warehouses.filter(function (x) { return x !== w; }); saveCfg(); renderTab(); },
+    'wh-del': function (el) { var w = el.getAttribute('data-w'); cfg.warehouses = cfg.warehouses.filter(function (x) { return x !== w; }); saveCfg(); metaQueue('wh', w, true); renderTab(); },
     'dest-add': function () {
       var v = $('newDest').value.trim();
       if (!v || cfg.dests.indexOf(v) >= 0) return;
-      cfg.dests.push(v); saveCfg(); renderTab();
+      cfg.dests.push(v); saveCfg(); metaQueue('dest', v, false); renderTab();
     },
-    'dest-del': function (el) { var d = el.getAttribute('data-d'); cfg.dests = cfg.dests.filter(function (x) { return x !== d; }); saveCfg(); renderTab(); },
+    'dest-del': function (el) { var d = el.getAttribute('data-d'); cfg.dests = cfg.dests.filter(function (x) { return x !== d; }); saveCfg(); metaQueue('dest', d, true); renderTab(); },
     'test-sound': function (el) { feedback(el.getAttribute('data-k')); },
     'demo-add': function () { demoAdd().then(function () { if (!cfg.wh) { cfg.wh = 'Orkla'; cfg.setup = true; saveCfg(); } notifyTabs(); renderTab(); toast('Date demo încărcate.'); }); },
     'demo-del': function () { demoDel(); },
     'wipe': function () {
-      openDlg('<h2>Ștergi toate datele?</h2><p>Se șterg definitiv toate mișcările, stocul și setările de pe <b>acest dispozitiv</b>. Datele de pe celelalte dispozitive nu sunt atinse. Salvează întâi fișierul de transfer dacă vrei o copie.</p><label class="fld"><span>Scrie STERGE ca să confirmi</span><input class="inp" id="wipeTxt" data-focus type="text" autocomplete="off" autocapitalize="characters"></label><div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button><button type="button" class="btn pri danger" data-act="wipe-go">Șterge tot</button></div>');
+      openDlg('<h2>Ștergi toate datele?</h2><p>Se șterg definitiv toate mișcările, stocul și setările de pe <b>acest dispozitiv</b>. Datele de pe celelalte dispozitive nu sunt atinse.' + (sync.user ? ' Dispozitivul este conectat online: mișcările deja trimise pe server se descarcă din nou după ștergere' + (sync.npend ? ', iar cele ' + sync.npend + ' netrimise se pierd.' : '.') : ' Salvează întâi fișierul de transfer dacă vrei o copie.') + '</p><label class="fld"><span>Scrie STERGE ca să confirmi</span><input class="inp" id="wipeTxt" data-focus type="text" autocomplete="off" autocapitalize="characters"></label><div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button><button type="button" class="btn pri danger" data-act="wipe-go">Șterge tot</button></div>');
     },
     'wipe-go': function () {
       if (($('wipeTxt').value || '').trim().toUpperCase() !== 'STERGE') { toast('Scrie STERGE în câmp ca să confirmi.'); return; }
       Store.clear().then(function () {
         var id = cfg.devId; cfg = defaults(); cfg.devId = id;
-        S.events = []; S.locs = []; ui.slots = null; ui.pending = null; ui.result = null; ui.outCount = 0;
+        S.events = []; S.locs = []; ui.slots = null; ui.pending = null; ui.result = null; ui.outCount = 0; ui.whSeen = ''; followWh();
         rebuild(); saveCfg(); notifyTabs(); closeDlg(); showTab('scan'); whDlg(true);
+        if (sync.user) syncStart();
       });
     }
   };
@@ -1845,12 +2191,13 @@ td.act{text-align:right;white-space:nowrap}
       if (f) {
         var parts = f.split('.'), o = parts[0] === 'fs' ? fs : fm;
         o[parts[1]] = el.value; o.limit = 300;
-        if (parts[0] === 'fs') renderStockBody(); else renderMovesBody();
+        if (parts[0] === 'fs' && parts[1] === 'wh') renderStock();
+        else if (parts[0] === 'fs') renderStockBody(); else renderMovesBody();
       } else if (s) {
         if (el.type === 'checkbox') cfg[s] = el.checked;
         else if (el.type === 'radio') { if (el.checked) cfg[s] = el.value; }
         else cfg[s] = s === 'devName' ? el.value.trim() : el.value;
-        if (s === 'wh') { cfg.setup = true; ui.slots = null; ui.pending = null; ui.result = null; }
+        if (s === 'wh') { cfg.setup = true; ui.slots = null; ui.pending = null; ui.result = null; ui.whSeen = cfg.wh; followWh(); }
         saveCfg(); renderChrome();
         if (ev.type === 'change' && (s === 'wh' || s === 'dest')) renderSettings();
       } else if (el.id === 'impOnlyBad' && imp) { imp.onlyBad = el.checked; importPreview(); }
@@ -1867,7 +2214,13 @@ td.act{text-align:right;white-space:nowrap}
       }
       if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio' || el.type === 'date') filt(ev);
     });
-    $('dlg').addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target.id === 'pdLoc') { ev.preventDefault(); pdSave(); } });
+    $('dlg').addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      if (ev.target.id === 'pdLoc') { ev.preventDefault(); pdSave(); }
+      else if (ev.target.id === 'syncCode') { ev.preventDefault(); A['sync-in'](); }
+    });
+    window.addEventListener('online', function () { sync.retry = 0; scheduleFlush(0); renderChrome(); });
+    window.addEventListener('offline', function () { sync.live = false; renderChrome(); });
   }
 
   /* ================= pornire ================= */
@@ -1903,6 +2256,7 @@ td.act{text-align:right;white-space:nowrap}
         if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(function (v) { ui.persisted = v; if (ui.tab === 'settings') renderSettings(); });
       } catch (e) { }
       registerSW();
+      syncInit();
     });
   }).catch(function (e) {
     document.body.insertAdjacentHTML('afterbegin', '<p style="padding:16px">Aplicația nu a putut porni: ' + esc(e && e.message || e) + '</p>');

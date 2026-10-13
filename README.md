@@ -1,6 +1,6 @@
-# Stoc Paleți — versiunea 1.0.0 (offline)
+# Stoc Paleți — versiunea 1.1.0
 
-Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Această versiune lucrează fără internet: datele stau pe fiecare dispozitiv și se adună prin fișiere de transfer. Sincronizarea în timp real (Firebase) este etapa următoare.
+Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Scanarea merge mereu, cu sau fără internet. Cât timp fișierul `config.js` nu conține o configurație Firebase, aplicația lucrează doar local și datele se adună prin fișiere de transfer. Cu Firebase configurat, mișcările ajung în timp real pe toate dispozitivele conectate (secțiunea 9).
 
 ## Ce este în pachet
 
@@ -9,6 +9,9 @@ Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scan
 | `index.html` | aplicația (toată interfața și logica) |
 | `sw.js`, `manifest.webmanifest`, `icons/` | fac aplicația instalabilă și disponibilă fără internet |
 | `vendor/xlsx.full.min.js` | citirea și scrierea fișierelor Excel |
+| `vendor/firebase-*.js` | biblioteca Firebase, folosită doar în modul online |
+| `config.js` | configurația instalării: aici se pune configurația Firebase |
+| `firestore.rules` | regulile de acces care se lipesc în consola Firebase |
 | `sablon-import-miscari.xlsx` | model pentru importul de mișcări și de stoc inițial |
 
 ## 1. Publicare (o singură dată)
@@ -64,8 +67,9 @@ Reguli aplicate:
 
 ## 5. Pe PC
 
-- **Stoc**: paleții din ambele depozite, cu filtrare și căutare; vederea „Locații" arată locațiile libere, ocupate și conflictele. Export Excel sau CSV pentru ce este filtrat.
-- **Mișcări**: jurnalul complet, cu filtre pe perioadă, tip și depozit, export și anulare.
+- **Stoc** și **Mișcări** arată depozitul activ, cel ales în stânga sus. Când schimbi depozitul, se schimbă și ce vezi. Pentru o privire de ansamblu, alege „Toate" la filtrul Depozit.
+- **Stoc**: paleții, cu filtrare și căutare; vederea „Locații" arată locațiile libere, ocupate și conflictele. Export Excel sau CSV pentru ce este filtrat.
+- **Mișcări**: jurnalul, cu filtre pe perioadă, tip și depozit, export și anulare. Un transfer între depozite apare la amândouă.
 - **Date → Import mișcări**: încarcă intrări, ieșiri și mutări din Excel sau CSV. Stocul inițial se încarcă la fel (un rând pe palet). Înainte de import vezi fiecare rând cu starea lui.
 - **Date → Raport complet**: un fișier Excel cu trei foi (Stoc, Mișcări, Locații).
 - **Date → Lista de locații** (opțional): dacă încarci locațiile fiecărui depozit, raportul arată și locațiile libere nefolosite încă.
@@ -111,6 +115,48 @@ Recomandare: fă transferul cel puțin o dată pe schimb. Un punct roșu pe „D
 
 La o versiune nouă, înlocuiești fișierele din repository cu cele din pachetul nou. La următoarea deschidere cu internet, aplicația anunță „Există o versiune nouă" și se actualizează la apăsarea butonului. Datele de pe dispozitiv nu sunt atinse.
 
-## 9. Etapa următoare: online
+## 9. Modul online (Firebase)
 
-Jurnalul de mișcări este deja construit pentru sincronizare (fiecare mișcare are identificator unic și se poate îmbina fără dubluri). Pentru varianta în timp real este nevoie de un proiect Firebase; aplicația va continua să meargă și fără semnal, trimițând mișcările când revine conexiunea.
+### Cum funcționează
+
+- Fiecare scanare se salvează întâi pe dispozitiv, apoi pleacă pe server. Fără semnal, scanarea merge la fel; mișcările așteaptă și pleacă singure când revine conexiunea.
+- Celelalte dispozitive conectate primesc mișcarea în aproximativ o secundă.
+- Starea se vede permanent în bara de sus: **sincronizat**, **N de trimis**, **fără conexiune**, **neconectat** sau **eroare sincronizare**. O atingere pe ea deschide detaliile.
+- Depozitele, destinațiile și lista de locații sunt și ele comune.
+- Verificările „palet deja în stoc" și „locație ocupată" se fac pe datele pe care dispozitivul le are în acel moment. Un scanner fără semnal nu vede ce s-a scanat între timp în altă parte.
+
+### Activare (o singură dată)
+
+1. Creează proiectul în consola Firebase: Firestore Database (locație `europe-west3`, „production mode") și Authentication cu metoda Email/Password.
+2. În Authentication → Users adaugă utilizatorul `depozit@stoc.local` cu o parolă. Parola este **codul de acces** al dispozitivelor. Pe scannerele cu tastatură numerică este mai comod un cod doar din cifre, de cel puțin 8 cifre.
+3. Firestore Database → Rules: șterge ce este acolo, lipește conținutul fișierului `firestore.rules` și apasă **Publish**.
+4. Pune configurația proiectului în `config.js` (în locul lui `null`) și încarcă fișierul în repository.
+5. Pe fiecare dispozitiv: deschide aplicația cu internet, introdu codul de acces. Rămâne conectat și după repornire.
+
+Înainte de conectare: dacă pe dispozitiv sunt mișcări de test, șterge-le din Setări → „Șterge toate datele de pe dispozitiv". Tot ce se află pe dispozitiv în momentul conectării este trimis în baza comună.
+
+Stocul inițial se importă o singură dată, de pe un singur dispozitiv conectat (de preferat PC-ul). Ajunge automat pe celelalte.
+
+### Încadrarea în planul gratuit (Spark)
+
+| | Estimat (600 de mișcări pe zi, 3 dispozitive) | Limita gratuită |
+|---|---|---|
+| Scrieri pe zi | cel mult 600 | 20.000 |
+| Citiri pe zi | aproximativ 2.000 | 50.000 |
+| Stoc inițial de 3.000 de paleți | 12 scrieri (mișcările se grupează) | 20.000 |
+| Stocare | aproximativ 50 MB pe an | 1 GB |
+| Trafic de date | sub 1 GB pe lună | 10 GB pe lună |
+
+Dacă o limită zilnică ar fi totuși atinsă, sincronizarea se oprește până a doua zi, dar scanarea continuă și nimic nu se pierde: mișcările rămân pe dispozitiv și pleacă după resetarea limitei. De urmărit pe termen lung: un dispozitiv instalat de la zero citește tot istoricul (aproximativ 2.000 de documente pentru fiecare an de lucru), deci după mulți ani istoricul ar trebui arhivat.
+
+### Repornire de la zero (după perioada de teste)
+
+1. În consola Firebase: Firestore Database → colecția `log` → meniul ⋮ → **Delete collection**.
+2. Pe fiecare dispozitiv: Setări → „Șterge toate datele de pe dispozitiv".
+3. Importă din nou stocul inițial de pe PC.
+
+Ordinea contează: un dispozitiv neșters ar păstra mișcările vechi.
+
+### Siguranță
+
+Fără codul de acces nimeni nu poate citi sau scrie date, chiar dacă are adresa aplicației și configurația din `config.js` (aceasta nu este secretă). Regulile nu permit ștergerea mișcărilor de pe server. Fișierul de transfer din pagina Date rămâne disponibil ca o copie de siguranță.
