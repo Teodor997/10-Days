@@ -1,0 +1,1914 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b5a61">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Stoc Paleți</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+/* Layout: consolă de mână — un singur lucru pe ecran. Depozitul activ colorează bara de sus, operațiunea colorează panoul de scanare. */
+:root{
+  --bg:#e8ebe7; --surface:#ffffff; --surface2:#f2f5f1; --ink:#12181a; --muted:#566165; --line:#c7cfca;
+  --in:#156b37; --in-ink:#11592d; --in-t:#dcf0e3;
+  --out:#b3261e; --out-ink:#9c1f18; --out-t:#fbe3e0;
+  --move:#1b57b0; --move-ink:#184c9a; --move-t:#dfe9fa;
+  --check:#37474c; --check-ink:#2c3a3e; --check-t:#e1e7e8;
+  --warn-ink:#7a4f00; --warn-t:#fcefc9; --warn-line:#e2c267;
+  --wh0:#0b5a61; --wh1:#6a2c79; --wh2:#7a4a10; --wh3:#34444b;
+  --on-solid:#ffffff; --shade:rgba(10,16,18,.55);
+  --f-ui:"Roboto Condensed","sans-serif-condensed","Arial Narrow","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-code:"Roboto Mono","Cascadia Mono",Consolas,"DejaVu Sans Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1213; --surface:#181d1f; --surface2:#1f2629; --ink:#e8eeee; --muted:#9ba8ab; --line:#313b3e;
+  --in:#1b7d41; --in-ink:#6bd596; --in-t:#12301e;
+  --out:#b93229; --out-ink:#ff8a7f; --out-t:#3a1815;
+  --move:#2562c2; --move-ink:#86b3ff; --move-t:#15284a;
+  --check:#44565c; --check-ink:#b9c6c9; --check-t:#232b2e;
+  --warn-ink:#f2c860; --warn-t:#33290d; --warn-line:#6e5a1c;
+  --wh0:#0b5a61; --wh1:#6a2c79; --wh2:#7a4a10; --wh3:#34444b;
+  --on-solid:#ffffff; --shade:rgba(0,0,0,.66); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1213; --surface:#181d1f; --surface2:#1f2629; --ink:#e8eeee; --muted:#9ba8ab; --line:#313b3e;
+  --in:#1b7d41; --in-ink:#6bd596; --in-t:#12301e;
+  --out:#b93229; --out-ink:#ff8a7f; --out-t:#3a1815;
+  --move:#2562c2; --move-ink:#86b3ff; --move-t:#15284a;
+  --check:#44565c; --check-ink:#b9c6c9; --check-t:#232b2e;
+  --warn-ink:#f2c860; --warn-t:#33290d; --warn-line:#6e5a1c;
+  --wh0:#0b5a61; --wh1:#6a2c79; --wh2:#7a4a10; --wh3:#34444b;
+  --on-solid:#ffffff; --shade:rgba(0,0,0,.66); color-scheme:dark }
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;touch-action:manipulation;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.35;overflow:hidden;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--move-ink);outline-offset:1px}
+h2{font-family:var(--f-ui);font-size:20px;font-weight:700;margin:0 0 10px;letter-spacing:.01em}
+h3{font-family:var(--f-ui);font-size:16px;font-weight:700;margin:0 0 6px}
+p{margin:0 0 8px}
+.muted{color:var(--muted)}
+.code{font-family:var(--f-code);font-variant-numeric:tabular-nums;letter-spacing:-.01em;word-break:break-all}
+.code b{font-weight:700}
+.code.nb{white-space:nowrap;word-break:normal}
+.nowrap{white-space:nowrap}
+
+/* ---- cadru ---- */
+#app{height:100%;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top" "main" "nav"}
+#top{grid-area:top;background:var(--wh0);color:var(--on-solid);display:flex;align-items:center;justify-content:space-between;padding:6px 16px;min-height:50px}
+#app[data-wh="1"] #top{background:var(--wh1)} #app[data-wh="2"] #top{background:var(--wh2)} #app[data-wh="3"] #top{background:var(--wh3)}
+#whBtn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.4);color:var(--on-solid);border-radius:6px;padding:3px 30px 3px 10px;text-align:left;position:relative;min-height:38px;font-family:var(--f-ui)}
+#whBtn .lbl{display:block;font-size:10px;letter-spacing:.09em;text-transform:uppercase;opacity:.85;line-height:1.1}
+#whBtn b{display:block;font-size:19px;line-height:1.1;text-transform:uppercase;letter-spacing:.03em}
+#whBtn::after{content:"";position:absolute;right:11px;top:50%;margin-top:-2px;border:5px solid transparent;border-top-color:var(--on-solid)}
+#topInfo{text-align:right;font-family:var(--f-ui);font-size:12px;line-height:1.25;opacity:.95;margin-left:10px;min-width:0}
+#topInfo .bad{background:var(--out);color:var(--on-solid);padding:1px 6px;border-radius:3px;font-weight:700}
+#main{grid-area:main;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;min-width:0}
+#nav{grid-area:nav;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav button{background:none;border:0;border-top:3px solid transparent;padding:5px 2px 6px;font-family:var(--f-ui);font-size:12px;color:var(--muted);position:relative;min-height:50px}
+#nav svg{display:block;margin:0 auto 1px;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#nav button[aria-current="page"]{color:var(--ink);border-top-color:var(--ink);font-weight:700}
+#nav .dot{position:absolute;top:5px;left:50%;margin-left:9px;width:9px;height:9px;border-radius:50%;background:var(--out)}
+.tab{padding:12px 16px 28px;max-width:1240px}
+#tab-scan{max-width:580px}
+@media (min-width:900px){
+  #app{grid-template-columns:190px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top top" "nav main"}
+  #nav{grid-template-columns:minmax(0,1fr);align-content:start;border-top:0;border-right:1px solid var(--line);padding:10px 0}
+  #nav button{display:flex;align-items:center;border-top:0;border-left:4px solid transparent;padding:10px 14px;font-size:15px;min-height:44px;text-align:left}
+  #nav svg{margin:0 10px 0 0}
+  #nav button[aria-current="page"]{border-left-color:var(--ink);background:var(--surface2)}
+  #nav .dot{left:auto;right:14px;top:50%;margin:-4px 0 0}
+  .tab{padding:18px 24px 40px}
+}
+
+/* ---- scanare ---- */
+#modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-gap:5px;margin-bottom:8px}
+#modes button{font-family:var(--f-ui);font-size:15px;font-weight:700;letter-spacing:.02em;padding:9px 2px;border-radius:6px;border:2px solid var(--line);background:var(--surface);color:var(--muted);min-height:44px}
+#modes button[data-mode="IN"][aria-pressed="true"]{background:var(--in);border-color:var(--in);color:var(--on-solid)}
+#modes button[data-mode="OUT"][aria-pressed="true"]{background:var(--out);border-color:var(--out);color:var(--on-solid)}
+#modes button[data-mode="MOVE"][aria-pressed="true"]{background:var(--move);border-color:var(--move);color:var(--on-solid)}
+#modes button[data-mode="CHECK"][aria-pressed="true"]{background:var(--check);border-color:var(--check);color:var(--on-solid)}
+#panel{border-radius:8px;color:var(--on-solid);padding:10px 12px 12px;background:var(--in);position:relative}
+#panel[data-mode="OUT"]{background:var(--out)} #panel[data-mode="MOVE"]{background:var(--move)} #panel[data-mode="CHECK"]{background:var(--check)}
+#panelHead{font-family:var(--f-ui);font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.9;padding-right:70px}
+#ask{font-family:var(--f-ui);font-size:25px;font-weight:700;line-height:1.12;margin-top:6px}
+#slots{margin-top:8px}
+.slot{display:grid;grid-template-columns:74px minmax(0,1fr);align-items:baseline;padding:5px 8px;border-radius:5px;background:rgba(0,0,0,.18);margin-top:4px;min-height:32px}
+.slot .k{font-family:var(--f-ui);font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
+.slot .v{font-family:var(--f-code);font-size:15px;word-break:break-all}
+.slot .v small{display:block;font-family:var(--f-ui);font-size:12px;opacity:.9}
+.slot.next{background:rgba(255,255,255,.22);box-shadow:inset 0 0 0 2px rgba(255,255,255,.75)}
+.slot.next .v{font-family:var(--f-ui);font-style:italic;opacity:.95}
+#panel .mini{position:absolute;top:7px;right:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.5);color:var(--on-solid);border-radius:5px;font-family:var(--f-ui);font-size:13px;padding:4px 9px;min-height:30px}
+.outbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px;font-family:var(--f-ui);font-size:14px}
+.outbar button{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.5);color:var(--on-solid);border-radius:5px;font-size:13px;padding:3px 9px;margin-left:6px;min-height:30px}
+.outbar b{font-size:17px}
+#scanForm{display:grid;grid-template-columns:minmax(0,1fr) 46px 62px;grid-gap:6px;margin:8px 0}
+#scanInput{min-width:0;height:46px;border:2px solid var(--ink);border-radius:6px;background:var(--surface);padding:0 10px;font-family:var(--f-code);font-size:17px}
+#scanInput::placeholder{font-family:var(--f-ui);font-size:14px;color:var(--muted)}
+#scanForm button{height:46px;border-radius:6px;border:2px solid var(--ink);background:var(--surface);font-family:var(--f-ui);font-weight:700;font-size:16px;padding:0}
+#scanForm #okBtn{background:var(--ink);color:var(--surface)}
+#kbBtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;vertical-align:middle}
+#kbBtn[aria-pressed="true"]{background:var(--warn-t);border-color:var(--warn-ink);color:var(--warn-ink)}
+#result:empty{display:none}
+.res{border-radius:8px;padding:10px 12px;border:2px solid var(--line);background:var(--surface);margin-bottom:10px}
+.res .t{font-family:var(--f-ui);font-weight:700;font-size:18px;line-height:1.15}
+.res .d{margin-top:3px;font-size:14px}
+.res .d .code{font-size:15px}
+.res.ok{border-color:var(--in-ink);background:var(--in-t)} .res.ok .t{color:var(--in-ink)}
+.res.bad{border-color:var(--out-ink);background:var(--out-t)} .res.bad .t{color:var(--out-ink)}
+.res.warn,.res.ask{border-color:var(--warn-line);background:var(--warn-t)} .res.warn .t,.res.ask .t{color:var(--warn-ink)}
+.res .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-gap:8px;margin-top:10px}
+.res .acts.one{grid-template-columns:minmax(0,1fr)}
+.pill{display:inline-block;font-family:var(--f-ui);font-weight:700;font-size:12px;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;padding:2px 7px;line-height:1.35;white-space:nowrap}
+.pill.IN,.pill.free{background:var(--in-t);color:var(--in-ink)} .pill.OUT,.pill.conf{background:var(--out-t);color:var(--out-ink)}
+.pill.MOVE,.pill.occ{background:var(--move-t);color:var(--move-ink)} .pill.UNLOC{background:var(--warn-t);color:var(--warn-ink)} .pill.VOID{background:var(--check-t);color:var(--check-ink)}
+.pill.big{font-size:17px;padding:4px 12px}
+.info .big-code{font-family:var(--f-code);font-size:21px;font-weight:700;word-break:break-all;line-height:1.15;margin:2px 0 6px}
+.info .row{padding:7px 0;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.info .row>div{min-width:0}
+.info .row button{margin-left:8px;flex:none}
+@keyframes flashbad{0%,60%{box-shadow:inset 0 0 0 600px rgba(179,38,30,.35)}100%{box-shadow:inset 0 0 0 600px rgba(179,38,30,0)}}
+#tab-scan.flash{animation:flashbad .7s ease-out}
+@media (prefers-reduced-motion:reduce){#tab-scan.flash{animation:none;outline:4px solid var(--out);outline-offset:-4px}}
+.sec-h{font-family:var(--f-ui);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+.rec{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+.rec .code{font-size:13px}
+.rec .w{color:var(--muted);font-family:var(--f-ui)}
+.rec.void{opacity:.55;text-decoration:line-through}
+
+/* ---- butoane și formulare ---- */
+.btn{border:2px solid var(--ink);background:var(--surface);border-radius:6px;padding:8px 14px;font-family:var(--f-ui);font-weight:700;font-size:15px;min-height:42px;color:var(--ink)}
+.btn.pri{background:var(--ink);color:var(--surface)}
+.btn.danger{border-color:var(--out-ink);color:var(--out-ink)}
+.btn.danger.pri{background:var(--out);border-color:var(--out);color:var(--on-solid)}
+.btn.sm{padding:3px 10px;min-height:32px;font-size:13px;border-width:1px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;margin:-4px}
+.btns>*{margin:4px}
+.fld{display:block;margin-bottom:10px}
+.fld>span{display:block;font-family:var(--f-ui);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.inp{width:100%;min-width:0;height:40px;border:1px solid var(--muted);border-radius:6px;background:var(--surface);padding:0 10px}
+select.inp{padding-right:4px}
+.chk{display:flex;align-items:center;padding:7px 0;min-height:40px}
+.chk input{width:22px;height:22px;margin:0 10px 0 0;flex:none}
+
+/* ---- pagini de date ---- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));grid-gap:8px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--wh3);border-radius:6px;padding:8px 10px}
+.kpi[data-wh="0"]{border-left-color:var(--wh0)} .kpi[data-wh="1"]{border-left-color:var(--wh1)} .kpi[data-wh="2"]{border-left-color:var(--wh2)}
+.kpi.alert{border-left-color:var(--out)}
+.kpi .n{font-family:var(--f-ui);font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .l{font-family:var(--f-ui);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:3px}
+.bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));grid-gap:8px;align-items:end;margin-bottom:10px}
+.bar .fld{margin:0}
+.bar .grow{grid-column:span 2}
+@media (max-width:420px){.bar .grow{grid-column:auto}}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:2px solid var(--ink);border-radius:6px;overflow:hidden;height:40px}
+.seg button{border:0;background:var(--surface);font-family:var(--f-ui);font-weight:700;font-size:14px;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-family:var(--f-ui);font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap;background:var(--surface2)}
+th[data-sort]{cursor:pointer}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td .code{font-size:13.5px}
+tr.void td{color:var(--muted)} tr.void td.sx{text-decoration:line-through}
+td.act{text-align:right;white-space:nowrap}
+.empty{padding:22px 14px;text-align:center;color:var(--muted)}
+.count{font-family:var(--f-ui);font-size:13px;color:var(--muted);margin:8px 2px}
+@media (max-width:700px){.hide-sm{display:none}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px}
+.card p{max-width:68ch}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));grid-gap:12px;align-items:start}
+.cards .card{margin:0}
+.note{background:var(--warn-t);border:1px solid var(--warn-line);color:var(--ink);border-radius:6px;padding:9px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.note>span{margin:2px 8px 2px 0}
+.list{margin:0 0 8px;padding:0;list-style:none}
+.list li{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)}
+.addrow{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-gap:6px}
+.st-ok{color:var(--in-ink);font-weight:700} .st-warn{color:var(--warn-ink);font-weight:700} .st-err{color:var(--out-ink);font-weight:700} .st-dup{color:var(--muted);font-weight:700}
+
+/* ---- ferestre ---- */
+#dlg{position:fixed;left:0;top:0;right:0;bottom:0;background:var(--shade);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;z-index:20}
+.dbox{background:var(--surface);color:var(--ink);border-radius:10px;width:100%;max-width:520px;margin:auto 0;padding:16px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.dbox.wide{max-width:980px}
+.dbox h2{padding-right:44px}
+.dbox .x{position:absolute;right:8px;top:8px;width:40px;height:40px;border:0;background:none;font-size:26px;line-height:1;color:var(--muted);border-radius:6px}
+.dbox .foot{margin-top:14px;display:flex;justify-content:flex-end;flex-wrap:wrap}
+.dbox .foot>*{margin:4px 0 4px 8px}
+.whpick{display:grid;grid-gap:8px;margin:10px 0}
+.whpick button{border:0;border-radius:8px;color:var(--on-solid);background:var(--wh3);font-family:var(--f-ui);font-size:22px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:14px;text-align:left;min-height:58px}
+.whpick button[data-i="0"]{background:var(--wh0)} .whpick button[data-i="1"]{background:var(--wh1)} .whpick button[data-i="2"]{background:var(--wh2)}
+.whpick button small{display:block;font-size:12px;font-weight:400;letter-spacing:.06em;opacity:.9}
+#toast{position:fixed;left:16px;right:16px;bottom:72px;z-index:30;display:flex;justify-content:center;pointer-events:none}
+#toast>div{background:var(--ink);color:var(--surface);border-radius:8px;padding:10px 14px;font-size:14px;max-width:520px;pointer-events:auto;display:flex;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+#toast button{margin-left:12px;background:none;border:1px solid currentColor;color:inherit;border-radius:5px;padding:4px 10px;font-family:var(--f-ui);font-weight:700}
+
+/* ---- liste pe ecran îngust ---- */
+.res .th{display:flex;align-items:center;justify-content:space-between}
+.res .th .btn{margin-left:8px;flex:none}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-gap:2px 8px;align-items:center;width:100%;text-align:left;background:var(--surface);color:var(--ink);border:0;border-bottom:1px solid var(--line);padding:9px 10px;font-size:13.5px}
+.lrow:last-child,.mrow:last-child{border-bottom:0}
+.lrow .c{grid-column:1/-1;color:var(--muted);font-family:var(--f-ui);font-size:12.5px}
+.lrow .c .btn{margin:3px 0}
+.mrow{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
+.mrow .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;min-height:32px}
+.mrow .w{color:var(--muted);font-family:var(--f-ui);font-size:12.5px}
+.mrow.void .sx{text-decoration:line-through;color:var(--muted)}
+@media (max-width:700px){.bar .btns{grid-column:1/-1}}
+/* ---- scanner: ecran mic, totul trebuie să încapă fără derulare ---- */
+@media (max-width:480px){
+  #top{min-height:44px;padding:4px 16px}
+  #whBtn{min-height:34px;padding-top:2px;padding-bottom:2px} #whBtn b{font-size:17px}
+  .tab{padding:8px 16px 20px}
+  #modes{margin-bottom:6px} #modes button{min-height:40px;padding:6px 1px;font-size:14px}
+  #panel{padding:8px 10px 10px} #ask{font-size:22px;margin-top:3px}
+  .slot{min-height:30px;padding:4px 8px}
+  #scanForm{margin:6px 0} #scanInput,#scanForm button{height:44px}
+  #nav button{min-height:46px;padding-top:3px;padding-bottom:4px}
+  .res{padding:8px 10px;margin-bottom:8px}
+}
+
+.more{display:contents}
+.only-sm{display:none}
+@media (max-width:700px){
+  .only-sm{display:block;grid-column:1/-1}
+  .more{display:none}
+  .more.open{display:grid;grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));grid-gap:8px;align-items:end}
+  .more .btns{grid-column:1/-1}
+  .bar .grow{grid-column:1/-1}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:8px}
+  .kpi{padding:6px 10px} .kpi .n{font-size:24px}
+}
+
+</style>
+</head>
+<body>
+<div id="app" data-wh="3">
+  <header id="top">
+    <button id="whBtn" type="button" data-act="pick-wh" title="Schimbă depozitul activ"><span class="lbl">Depozit activ</span><b id="whName">alege</b></button>
+    <div id="topInfo"></div>
+  </header>
+  <nav id="nav" aria-label="Secțiuni">
+    <button type="button" data-tab="scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6v12M8 6v12M11 6v12M15 6v12M18 6v12M20.5 6v12"/></svg>Scanare</button>
+    <button type="button" data-tab="stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 20v-6h6v6M13 20v-6h6v6M9 14V8h6v6"/></svg>Stoc</button>
+    <button type="button" data-tab="moves"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>Mișcări</button>
+    <button type="button" data-tab="data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 18h14"/></svg>Date<span class="dot" id="dataDot" hidden></span></button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h12M20 17h0"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="18" cy="17" r="2"/></svg>Setări</button>
+  </nav>
+  <main id="main">
+    <section id="tab-scan" class="tab">
+      <div id="modes">
+        <button type="button" data-mode="IN" aria-pressed="true">Intrare</button>
+        <button type="button" data-mode="OUT" aria-pressed="false">Ieșire</button>
+        <button type="button" data-mode="MOVE" aria-pressed="false">Mutare</button>
+        <button type="button" data-mode="CHECK" aria-pressed="false">Verifică</button>
+      </div>
+      <div id="panel" data-mode="IN">
+        <div id="panelHead"></div>
+        <div id="ask"></div>
+        <div id="slots"></div>
+      </div>
+      <form id="scanForm" autocomplete="off">
+        <input id="scanInput" type="text" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" placeholder="cod scanat sau tastat" aria-label="Cod scanat">
+        <button type="button" id="kbBtn" data-act="kb" aria-pressed="false" title="Tastatură pe ecran"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h0M11 10h0M15 10h0M8 14h8"/></svg></button>
+        <button type="submit" id="okBtn">OK</button>
+      </form>
+      <div id="result" aria-live="assertive"></div>
+      <div id="recent"></div>
+    </section>
+    <section id="tab-stock" class="tab" hidden></section>
+    <section id="tab-moves" class="tab" hidden></section>
+    <section id="tab-data" class="tab" hidden></section>
+    <section id="tab-settings" class="tab" hidden></section>
+  </main>
+</div>
+<div id="dlg" hidden></div>
+<div id="toast" hidden></div>
+
+<script>
+/* Stoc Paleți — logica de bază (fără interfață). Rulează identic în browser și în Node (teste). */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.StocCore = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var GS = '\x1d';
+  var TYPE_LABEL = { IN: 'Intrare', OUT: 'Ieșire', MOVE: 'Mutare', UNLOC: 'Fără locație', VOID: 'Anulare' };
+  var SRC_LABEL = { scan: 'Scanare', manual: 'Manual', import: 'Import', demo: 'Demo' };
+
+  /* ---------- utilitare ---------- */
+  function pad(n, w) { var s = String(n); while (s.length < (w || 2)) s = '0' + s; return s; }
+  function fmtD(ts) { var d = new Date(ts); return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); }
+  function fmtT(ts) { var d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+  function fmtDT(ts) { return fmtD(ts) + ' ' + fmtT(ts); }
+  function stamp(ts) { var d = new Date(ts); return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()); }
+  function lkey(wh, loc) { return wh + '\u0001' + loc; }
+  function fold(s) { // minuscule, fără diacritice, doar litere/cifre — pentru potrivirea antetelor
+    return String(s == null ? '' : s).toLowerCase()
+      .replace(/[ăâ]/g, 'a').replace(/î/g, 'i').replace(/[șş]/g, 's').replace(/[țţ]/g, 't')
+      .replace(/[^a-z0-9]/g, '');
+  }
+  function cleanRaw(raw) { // păstrează GS (separator GS1), elimină restul caracterelor de control
+    return String(raw == null ? '' : raw).replace(/[\x00-\x1c\x1e\x1f\x7f]/g, '').trim();
+  }
+  function normLoc(raw) { return cleanRaw(raw).replace(/\x1d/g, '').replace(/^\][A-Za-z][0-9A-Za-z]/, '').trim().toUpperCase(); }
+
+  /* ---------- GS1 ---------- */
+  function aiSpec(s, pos) {
+    var a2 = s.substr(pos, 2), a3 = s.substr(pos, 3), a4 = s.substr(pos, 4);
+    if (!/^\d\d/.test(a2)) return null;
+    switch (a2) {
+      case '00': return { ai: a2, fix: 18, num: true };
+      case '01': case '02': return { ai: a2, fix: 14, num: true };
+      case '11': case '12': case '13': case '15': case '16': case '17': return { ai: a2, fix: 6, num: true };
+      case '20': return { ai: a2, fix: 2, num: true };
+      case '10': case '21': case '22': return { ai: a2, max: 20 };
+      case '30': case '37': return { ai: a2, max: 8, num: true };
+    }
+    if (/^9\d$/.test(a2)) return { ai: a2, max: a2 === '90' ? 30 : 90 };
+    if (/^3[1-6]\d\d$/.test(a4)) return { ai: a4, fix: 6, num: true };
+    if (/^39[0-3]\d$/.test(a4)) return { ai: a4, max: 18, num: true };
+    if (/^24[0-3]$/.test(a3) || /^25[01]$/.test(a3)) return { ai: a3, max: 30 };
+    if (/^40[013]$/.test(a3)) return { ai: a3, max: 30 };
+    if (a3 === '402') return { ai: a3, fix: 17, num: true };
+    if (/^41[0-7]$/.test(a3)) return { ai: a3, fix: 13, num: true };
+    if (/^42[0-7]$/.test(a3)) return { ai: a3, max: 20 };
+    return null;
+  }
+  function parseElements(s, pos, depth) {
+    while (s.charAt(pos) === GS) pos++;
+    if (pos >= s.length) return [];
+    if (depth > 12) return null;
+    var sp = aiSpec(s, pos);
+    if (!sp) return null;
+    var start = pos + sp.ai.length, val, rest;
+    if (sp.fix) {
+      val = s.substr(start, sp.fix);
+      if (val.length !== sp.fix || !/^\d+$/.test(val)) return null;
+      rest = parseElements(s, start + sp.fix, depth + 1);
+      return rest ? [{ ai: sp.ai, val: val }].concat(rest) : null;
+    }
+    var gs = s.indexOf(GS, start);
+    if (gs >= 0) {
+      val = s.slice(start, gs);
+      if (!val || val.length > sp.max || (sp.num && !/^\d+$/.test(val))) return null;
+      rest = parseElements(s, gs + 1, depth + 1);
+      return rest ? [{ ai: sp.ai, val: val }].concat(rest) : null;
+    }
+    // fără separator: câmpul variabil ia cât poate; se împarte doar dacă altfel nu se potrivește
+    var maxLen = Math.min(sp.max, s.length - start);
+    for (var L = maxLen; L >= 1; L--) {
+      val = s.substr(start, L);
+      if (sp.num && !/^\d+$/.test(val)) continue;
+      rest = parseElements(s, start + L, depth + 1);
+      if (rest) return [{ ai: sp.ai, val: val }].concat(rest);
+    }
+    return null;
+  }
+  function gs1Date(v) { // AALLZZ → zz.ll.aaaa (ziua 00 = ultima zi din lună, o lăsăm ca atare)
+    if (!/^\d{6}$/.test(v)) return v;
+    var yy = +v.substr(0, 2);
+    return v.substr(4, 2) + '.' + v.substr(2, 2) + '.' + (yy >= 70 ? 1900 + yy : 2000 + yy);
+  }
+  function parseGS1(raw, implicit) {
+    var s = cleanRaw(raw), explicit = false, els = null, m;
+    if (/^\](C1|e0|d2|Q3|J1)/.test(s)) { explicit = true; s = s.slice(3); }
+    if (/^\(\d{2,4}\)/.test(s)) {
+      els = []; var re = /\((\d{2,4})\)([^(]*)/g;
+      while ((m = re.exec(s))) els.push({ ai: m[1], val: m[2].replace(/\x1d/g, '').trim() });
+    } else if (explicit || s.indexOf(GS) >= 0 || implicit) {
+      els = parseElements(s, 0, 0);
+    }
+    if (!els || !els.length) return null;
+    var out = { els: els };
+    els.forEach(function (e) {
+      if (e.ai === '00' && /^\d{18}$/.test(e.val)) out.sscc = e.val;
+      else if (e.ai === '01' || e.ai === '02') out.gtin = e.val;
+      else if (e.ai === '10') out.lot = e.val;
+      else if (e.ai === '15' || e.ai === '17') out.exp = gs1Date(e.val);
+      else if (e.ai === '11') out.prod = gs1Date(e.val);
+      else if (e.ai === '37' || e.ai === '30') out.qty = e.val;
+      else if (e.ai === '21') out.serial = e.val;
+    });
+    return out;
+  }
+  function gs1Info(g) { // doar câmpurile utile, pentru salvare pe mișcare
+    if (!g) return null;
+    var o = {}, n = 0;
+    ['gtin', 'lot', 'exp', 'prod', 'qty', 'serial'].forEach(function (k) { if (g[k]) { o[k] = g[k]; n++; } });
+    return n ? o : null;
+  }
+
+  /* Interpretează orice cod scanat. Nu respinge nimic: dacă nu e SSCC, codul întreg devine identificatorul. */
+  function parseScan(raw) {
+    var s = cleanRaw(raw);
+    if (!s) return null;
+    var body = s.replace(/^\][A-Za-z][0-9A-Za-z]/, '');
+    var plain = body.replace(/\x1d/g, '').trim();
+    if (!plain) return null;
+    var looksGs1 = /^\](C1|e0|d2|Q3|J1)/.test(s) || /^\(\d{2,4}\)/.test(body) || body.indexOf(GS) >= 0;
+    var g = null;
+    if (looksGs1) g = parseGS1(s, false);
+    else if (/^\d{20}$/.test(plain) && plain.substr(0, 2) === '00') g = parseGS1(plain, true);
+    else if (plain.length >= 18 && /^0[012]\d/.test(plain) && !/^\d{18}$/.test(plain)) g = parseGS1(plain, true);
+    var id, isSSCC = false;
+    if (g && g.sscc) { id = g.sscc; isSSCC = true; }
+    else if (/^\d{18}$/.test(plain)) { id = plain; isSSCC = true; }
+    else id = plain.toUpperCase();
+    if (id.length > 120) id = id.slice(0, 120);
+    return { raw: s, id: id, loc: plain.toUpperCase(), isSSCC: isSSCC, gs1: gs1Info(g) };
+  }
+
+  /* ---------- starea stocului, derivată din jurnalul de mișcări ---------- */
+  function sortEvents(evs) {
+    evs.sort(function (a, b) { return a.ts - b.ts || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); });
+    return evs;
+  }
+  function newState() {
+    return { stock: new Map(), byLoc: new Map(), lastEv: new Map(), voided: new Set(), locNames: new Set(), locKeys: new Set(), maxTs: 0 };
+  }
+  function addLoc(st, wh, loc, p) {
+    if (!loc) return;
+    var k = lkey(wh, loc), set = st.byLoc.get(k);
+    if (!set) { set = new Set(); st.byLoc.set(k, set); }
+    set.add(p);
+  }
+  function delLoc(st, wh, loc, p) {
+    if (!loc) return;
+    var k = lkey(wh, loc), set = st.byLoc.get(k);
+    if (set) { set.delete(p); if (!set.size) st.byLoc.delete(k); }
+  }
+  function noteLoc(st, wh, loc) { if (loc) { st.locNames.add(loc); st.locKeys.add(lkey(wh, loc)); } }
+  function applyEvent(st, e) {
+    if (e.ts > st.maxTs) st.maxTs = e.ts;
+    if (e.type === 'VOID' || !e.p) return;
+    var cur = st.stock.get(e.p);
+    if (e.type === 'IN' || e.type === 'MOVE') {
+      if (cur) { delLoc(st, cur.wh, cur.loc, e.p); cur.wh = e.wh; cur.loc = e.loc || ''; cur.lastTs = e.ts; cur.lastType = e.type; }
+      else { cur = { p: e.p, wh: e.wh, loc: e.loc || '', inTs: e.ts, lastTs: e.ts, lastType: e.type, gs1: null }; st.stock.set(e.p, cur); }
+      if (e.gs1) cur.gs1 = e.gs1;
+      addLoc(st, cur.wh, cur.loc, e.p);
+      noteLoc(st, e.wh, e.loc);
+    } else if (e.type === 'OUT') {
+      if (cur) { delLoc(st, cur.wh, cur.loc, e.p); st.stock.delete(e.p); }
+    } else if (e.type === 'UNLOC') {
+      if (cur && cur.wh === e.wh && cur.loc === e.loc) { delLoc(st, cur.wh, cur.loc, e.p); cur.loc = ''; cur.lastTs = e.ts; cur.lastType = 'UNLOC'; }
+    }
+    st.lastEv.set(e.p, e);
+  }
+  /* events trebuie să fie sortate (sortEvents). masterLocs: [{wh, loc}] — lista opțională de locații. */
+  function computeState(events, masterLocs) {
+    var st = newState(), i;
+    for (i = 0; i < events.length; i++) if (events[i].type === 'VOID' && events[i].ref) st.voided.add(events[i].ref);
+    for (i = 0; i < events.length; i++) if (!st.voided.has(events[i].id)) applyEvent(st, events[i]);
+    (masterLocs || []).forEach(function (m) { noteLoc(st, m.wh, m.loc); });
+    return st;
+  }
+  function occupants(st, wh, loc) {
+    var set = st.byLoc.get(lkey(wh, loc));
+    return set ? Array.from(set) : [];
+  }
+  function classify(st, parsed) {
+    if (parsed.isSSCC) return 'pallet';
+    if (st.stock.has(parsed.id)) return 'pallet';
+    if (st.locNames.has(parsed.loc)) return 'location';
+    if (st.lastEv.has(parsed.id)) return 'pallet';
+    return 'unknown';
+  }
+
+  /* ---------- regulile operațiunilor ---------- */
+  function locTxt(wh, loc) { return wh + ' / ' + (loc || 'fără locație'); }
+  function planPlace(st, wh, pid, loc, mode) {
+    var cur = st.stock.get(pid);
+    if (cur && cur.wh === wh && cur.loc === loc) return { status: 'noop', msg: 'Paletul este deja pe locația ' + loc + '.' };
+    var occ = occupants(st, wh, loc).filter(function (x) { return x !== pid; });
+    var q = [], evs = [];
+    if (mode === 'IN' && cur) q.push('Paletul figurează deja în stoc la ' + locTxt(cur.wh, cur.loc) + '. Îl muți la ' + locTxt(wh, loc) + '?');
+    if (mode === 'MOVE' && !cur) q.push('Paletul nu figurează în stoc. Îl înregistrezi ca intrare la ' + locTxt(wh, loc) + '?');
+    if (mode === 'MOVE' && cur && cur.wh !== wh) q.push('Paletul figurează în ' + cur.wh + '. Îl transferi în ' + locTxt(wh, loc) + '?');
+    if (occ.length) q.push('Locația ' + loc + ' este ocupată de paletul ' + occ.join(', ') + '. Dacă continui, acel palet rămâne în stoc fără locație.');
+    occ.forEach(function (o) { evs.push({ type: 'UNLOC', p: o, wh: wh, loc: loc, note: 'Locație preluată de ' + pid }); });
+    var ev = { type: cur ? 'MOVE' : 'IN', p: pid, wh: wh, loc: loc };
+    if (cur) { ev.fromWh = cur.wh; ev.fromLoc = cur.loc; }
+    evs.push(ev);
+    return { status: q.length ? 'confirm' : 'ok', questions: q, events: evs };
+  }
+  function planOut(st, wh, pid, dest) {
+    var cur = st.stock.get(pid);
+    if (!cur) {
+      var le = st.lastEv.get(pid);
+      if (le && le.type === 'OUT') return { status: 'error', msg: 'Paletul a ieșit deja din stoc (' + fmtDT(le.ts) + ').' };
+      return { status: 'confirm', questions: ['Paletul nu figurează în stoc. Înregistrezi ieșirea oricum?'], events: [{ type: 'OUT', p: pid, wh: wh, loc: '', dest: dest }] };
+    }
+    var ev = { type: 'OUT', p: pid, wh: cur.wh, loc: cur.loc, dest: dest };
+    if (cur.wh !== wh) return { status: 'confirm', questions: ['Paletul figurează în ' + cur.wh + ', nu în ' + wh + '. Înregistrezi ieșirea?'], events: [ev] };
+    return { status: 'ok', events: [ev] };
+  }
+  function attach(plan, parsed) { // pune codul brut și datele GS1 pe mișcarea paletului scanat
+    if (!plan.events || !parsed) return plan;
+    var main = plan.events[plan.events.length - 1];
+    if (parsed.raw && parsed.raw !== main.p) main.raw = parsed.raw;
+    if (parsed.gs1) main.gs1 = parsed.gs1;
+    return plan;
+  }
+
+  /* Un pas de scanare. slots = {P:{id,cls,parsed}|null, L:string|null}.
+     Întoarce {slots, out}, unde out.kind ∈ need | plan | error | info. */
+  function scanFlow(mode, slots, st, wh, dest, parsed) {
+    var cls = classify(st, parsed);
+    var P = slots && slots.P || null, L = slots && slots.L || null;
+    var mk = function (c) { return { id: parsed.id, cls: c, parsed: parsed }; };
+    var occ, plan;
+
+    if (mode === 'CHECK') {
+      if (cls === 'location') {
+        var other = [];
+        st.byLoc.forEach(function (set, k) {
+          var parts = k.split('\u0001');
+          if (parts[1] === parsed.loc && parts[0] !== wh) other.push({ wh: parts[0], pallets: Array.from(set) });
+        });
+        return { slots: null, out: { kind: 'info', info: { what: 'location', wh: wh, loc: parsed.loc, pallets: occupants(st, wh, parsed.loc), other: other } } };
+      }
+      if (cls === 'pallet') return { slots: null, out: { kind: 'info', info: { what: 'pallet', id: parsed.id, cur: st.stock.get(parsed.id) || null, last: st.lastEv.get(parsed.id) || null, gs1: parsed.gs1 } } };
+      return { slots: null, out: { kind: 'info', info: { what: 'unknown', id: parsed.id, wh: wh } } };
+    }
+
+    if (mode === 'OUT') {
+      if (cls === 'location') {
+        occ = occupants(st, wh, parsed.loc);
+        if (!occ.length) return { slots: null, out: { kind: 'error', msg: 'Locația ' + parsed.loc + ' este liberă. Scanează paletul.' } };
+        if (occ.length > 1) return { slots: null, out: { kind: 'error', msg: 'Pe locația ' + parsed.loc + ' figurează ' + occ.length + ' paleți. Scanează eticheta paletului.' } };
+        plan = planOut(st, wh, occ[0], dest);
+        plan.status = 'confirm';
+        plan.questions = ['Locația ' + parsed.loc + ' conține paletul ' + occ[0] + '. Îl scoți din stoc?'].concat(plan.questions || []);
+        return { slots: null, out: { kind: 'plan', plan: plan, pid: occ[0] } };
+      }
+      plan = planOut(st, wh, parsed.id, dest);
+      if (plan.status === 'error') return { slots: null, out: { kind: 'error', msg: plan.msg } };
+      return { slots: null, out: { kind: 'plan', plan: attach(plan, parsed), pid: parsed.id } };
+    }
+
+    if (mode === 'IN') {
+      var replaced = false;
+      if (cls === 'pallet') {
+        if (P && P.cls === 'unknown' && !L) { L = P.parsed.loc; P = mk('pallet'); } // primul cod era de fapt locația
+        else { replaced = !!P; P = mk('pallet'); }
+      } else if (cls === 'location') L = parsed.loc;
+      else if (!P) P = mk('unknown');
+      else L = parsed.loc;
+      if (P && L) {
+        plan = planPlace(st, wh, P.id, L, 'IN');
+        if (plan.status === 'noop') return { slots: null, out: { kind: 'error', soft: true, msg: plan.msg } };
+        return { slots: { P: P, L: L }, out: { kind: 'plan', plan: attach(plan, P.parsed), pid: P.id } };
+      }
+      return { slots: { P: P, L: L }, out: { kind: 'need', what: P ? 'location' : 'pallet', warn: replaced, msg: replaced ? 'Palet înlocuit. Scanează locația.' : '' } };
+    }
+
+    if (mode === 'MOVE') {
+      if (!P) {
+        if (cls === 'location') {
+          occ = occupants(st, wh, parsed.loc);
+          if (!occ.length) return { slots: null, out: { kind: 'error', msg: 'Locația ' + parsed.loc + ' este liberă. Nu am ce muta.' } };
+          if (occ.length > 1) return { slots: null, out: { kind: 'error', msg: 'Pe locația ' + parsed.loc + ' figurează ' + occ.length + ' paleți. Scanează eticheta paletului.' } };
+          P = { id: occ[0], cls: 'pallet', parsed: null, via: parsed.loc };
+        } else P = mk(cls);
+        return { slots: { P: P, L: null }, out: { kind: 'need', what: 'location', msg: '' } };
+      }
+      if (cls === 'pallet') return { slots: { P: mk('pallet'), L: null }, out: { kind: 'need', what: 'location', warn: true, msg: 'Palet înlocuit. Scanează locația nouă.' } };
+      plan = planPlace(st, wh, P.id, parsed.loc, 'MOVE');
+      if (plan.status === 'noop') return { slots: null, out: { kind: 'error', soft: true, msg: plan.msg } };
+      return { slots: { P: P, L: parsed.loc }, out: { kind: 'plan', plan: attach(plan, P.parsed), pid: P.id } };
+    }
+    return { slots: null, out: { kind: 'error', msg: 'Mod necunoscut.' } };
+  }
+
+  /* ---------- CSV ---------- */
+  function detectDelimiter(text) {
+    var line = text.split(/\r?\n/, 1)[0] || '', best = ';', bestN = -1;
+    [';', ',', '\t', '|'].forEach(function (d) {
+      var n = 0, q = false;
+      for (var i = 0; i < line.length; i++) { var c = line.charAt(i); if (c === '"') q = !q; else if (c === d && !q) n++; }
+      if (n > bestN) { bestN = n; best = d; }
+    });
+    return best;
+  }
+  function parseCSV(text, delim) {
+    text = String(text || '').replace(/^﻿/, '');
+    delim = delim || detectDelimiter(text);
+    var rows = [], row = [], cur = '', q = false, i = 0, c;
+    while (i < text.length) {
+      c = text.charAt(i);
+      if (q) {
+        if (c === '"') { if (text.charAt(i + 1) === '"') { cur += '"'; i++; } else q = false; }
+        else cur += c;
+      } else if (c === '"') q = true;
+      else if (c === delim) { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text.charAt(i + 1) === '\n') i++;
+        row.push(cur); cur = ''; rows.push(row); row = [];
+      } else cur += c;
+      i++;
+    }
+    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (x) { return String(x).trim() !== ''; }); });
+  }
+  function toCSV(aoa) {
+    return '﻿' + aoa.map(function (r) {
+      return r.map(function (v) {
+        if (v && typeof v === 'object' && v.d != null) v = fmtDT(v.d);
+        v = v == null ? '' : String(v);
+        return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      }).join(';');
+    }).join('\r\n') + '\r\n';
+  }
+
+  /* ---------- date în Excel (calcul propriu, fără surprize de fus orar) ---------- */
+  function excelSerial(ts) { return (ts - new Date(ts).getTimezoneOffset() * 60000) / 86400000 + 25569; }
+  function fromExcelSerial(n) {
+    var d = new Date(Math.round((n - 25569) * 86400000));
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()).getTime();
+  }
+  function parseDateText(s) {
+    s = String(s || '').trim();
+    var m = /^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(s), y, mo, d;
+    if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+    else {
+      m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s);
+      if (!m) return null;
+      y = +m[1]; mo = +m[2]; d = +m[3];
+    }
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    var dt = new Date(y, mo - 1, d, +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+    if (dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+    return { ts: dt.getTime(), hasTime: m[4] != null };
+  }
+
+  /* ---------- import din Excel/CSV ---------- */
+  var HEAD = {
+    tip: ['tip', 'tipmiscare', 'miscare', 'operatiune', 'operatie', 'type', 'movement', 'tipoperatiune'],
+    palet: ['palet', 'sscc', 'eticheta', 'etichetapalet', 'paletsscc', 'pallet', 'hu', 'lpn', 'codpalet', 'nrpalet', 'handlingunit', 'paletid', 'idpalet', 'ssccpalet'],
+    depozit: ['depozit', 'warehouse', 'wh', 'magazie', 'site'],
+    locatie: ['locatie', 'location', 'loc', 'bin', 'storagebin', 'adresa', 'celula', 'pozitie', 'locatia'],
+    data: ['data', 'dataora', 'date', 'datetime', 'timestamp', 'datamiscare', 'datasiora', 'dataintrare', 'dataintrarii'],
+    destinatie: ['destinatie', 'destination', 'dest', 'catre'],
+    obs: ['obs', 'observatii', 'note', 'nota', 'comentariu', 'remarks', 'observatie']
+  };
+  var TYPES = {
+    IN: ['intrare', 'intrari', 'in', 'i', 'receptie', 'inbound', 'stoc', 'stocinitial'],
+    OUT: ['iesire', 'iesiri', 'out', 'e', 'o', 'livrare', 'outbound', 'expeditie'],
+    MOVE: ['mutare', 'mutari', 'move', 'm', 'transfer', 'relocare']
+  };
+  function cellText(c) {
+    if (c == null) return '';
+    if (typeof c === 'string') return c.trim();
+    if (c.t === 'n') return c.w != null && !/e\+?\d/i.test(String(c.w)) && String(c.w).indexOf('#') < 0 ? String(c.w).trim() : String(c.v);
+    return String(c.v == null ? '' : c.v).trim();
+  }
+  function findHeader(rows, need) {
+    for (var r = 0; r < Math.min(rows.length, 15); r++) {
+      var cols = {}, row = rows[r] || [];
+      for (var c = 0; c < row.length; c++) {
+        var f = fold(cellText(row[c]));
+        if (!f) continue;
+        for (var k in HEAD) if (cols[k] == null && HEAD[k].indexOf(f) >= 0) { cols[k] = c; break; }
+      }
+      if (cols[need] != null) return { row: r, cols: cols };
+    }
+    return null;
+  }
+  function cloneState(st) {
+    var c = newState();
+    st.stock.forEach(function (v, k) { c.stock.set(k, { p: v.p, wh: v.wh, loc: v.loc, inTs: v.inTs, lastTs: v.lastTs, lastType: v.lastType, gs1: v.gs1 }); });
+    st.byLoc.forEach(function (v, k) { c.byLoc.set(k, new Set(v)); });
+    st.lastEv.forEach(function (v, k) { c.lastEv.set(k, v); });
+    st.locNames.forEach(function (v) { c.locNames.add(v); });
+    st.locKeys.forEach(function (v) { c.locKeys.add(v); });
+    c.maxTs = st.maxTs;
+    return c;
+  }
+  function palletFromCell(c) {
+    if (c && typeof c === 'object' && c.t === 'n') {
+      if (!isFinite(c.v) || Math.floor(c.v) !== c.v || Math.abs(c.v) >= 1e15)
+        return { err: 'Codul paletului este salvat în Excel ca număr și s-au pierdut cifre. Formatează coloana ca Text și reîncarcă.' };
+      return { parsed: parseScan(String(c.v)) };
+    }
+    var t = cellText(c);
+    if (/^\d(\.\d+)?E\+\d+$/i.test(t)) return { err: 'Codul paletului apare în format științific (' + t + '). Formatează coloana ca Text și reîncarcă.' };
+    return { parsed: parseScan(t) };
+  }
+  /* rows: matrice de celule (text sau {t,v,w}). opts: {warehouses, defaultWh, defaultType, dests, now}. */
+  function buildImport(rows, opts, st) {
+    var hd = findHeader(rows, 'palet');
+    if (!hd) return { error: 'Nu găsesc coloana cu paletul. Antetul trebuie să conțină „Palet" sau „SSCC".' };
+    var cols = hd.cols, sim = cloneState(st), items = [], now = opts.now || Date.now();
+    var whMap = {};
+    (opts.warehouses || []).forEach(function (w) { whMap[fold(w)] = w; });
+    var counts = { ok: 0, warn: 0, dup: 0, err: 0 };
+    for (var r = hd.row + 1; r < rows.length; r++) {
+      var row = rows[r] || [], it = { line: r + 1, status: 'ok', msgs: [], specs: [], type: '', p: '', wh: '', loc: '', ts: 0 };
+      var get = function (k) { return cols[k] != null ? row[cols[k]] : null; };
+      if (!row.some(function (x) { return cellText(x) !== ''; })) continue;
+      var fail = function (m) { it.status = 'err'; it.msgs.push(m); };
+      var warn = function (m) { if (it.status === 'ok') it.status = 'warn'; it.msgs.push(m); };
+
+      var pc = palletFromCell(get('palet'));
+      if (pc.err) fail(pc.err);
+      else if (!pc.parsed) fail('Lipsește codul paletului.');
+      else it.p = pc.parsed.id;
+
+      var tt = fold(cellText(get('tip'))), type = '';
+      if (!tt) type = opts.defaultType || 'IN';
+      else for (var k in TYPES) if (TYPES[k].indexOf(tt) >= 0) type = k;
+      if (!type) fail('Tip necunoscut: „' + cellText(get('tip')) + '". Folosește Intrare, Ieșire sau Mutare.');
+      it.type = type;
+
+      var wt = cellText(get('depozit')), wh = '';
+      if (wt) { wh = whMap[fold(wt)] || ''; if (!wh) fail('Depozit necunoscut: „' + wt + '". Adaugă-l în Setări sau corectează numele.'); }
+      else wh = opts.defaultWh || '';
+      it.wh = wh;
+      it.loc = normLoc(cellText(get('locatie')));
+
+      var dc = get('data'), ts = 0;
+      if (dc != null && cellText(dc) !== '') {
+        if (typeof dc === 'object' && dc.t === 'n') ts = fromExcelSerial(dc.v);
+        else if (typeof dc === 'object' && dc.t === 'd' && dc.v instanceof Date) ts = dc.v.getTime();
+        else { var pd = parseDateText(cellText(dc)); if (pd) ts = pd.ts; else fail('Dată nerecunoscută: „' + cellText(dc) + '". Format: zz.ll.aaaa hh:mm.'); }
+        if (ts && ts > now + 86400000) warn('Data este în viitor.');
+      }
+      it.ts = ts ? ts + (ts % 1000 === 0 ? (items.length % 1000) : 0) : now + items.length;
+      var dest = cellText(get('destinatie')), note = cellText(get('obs'));
+
+      if (it.status !== 'err') {
+        var cur = sim.stock.get(it.p), ev = null, occ;
+        if (type === 'IN' || type === 'MOVE') {
+          if (!wh) fail('Lipsește depozitul.');
+          else if (type === 'MOVE' && !it.loc) fail('Mutarea are nevoie de locația nouă.');
+          else if (cur && cur.wh === wh && cur.loc === it.loc) { it.status = 'dup'; it.msgs.push('Paletul este deja în stoc pe această locație.'); }
+          else {
+            if (!it.loc) warn('Fără locație.');
+            if (type === 'IN' && cur) warn('Paletul e deja în stoc la ' + locTxt(cur.wh, cur.loc) + ' — se înregistrează ca mutare.');
+            if (type === 'MOVE' && !cur) warn('Paletul nu figurează în stoc — se înregistrează ca intrare.');
+            occ = it.loc ? occupants(sim, wh, it.loc).filter(function (x) { return x !== it.p; }) : [];
+            if (occ.length) warn('Locația e ocupată de ' + occ.join(', ') + ' — vor figura mai mulți paleți pe locație.');
+            ev = { type: cur ? 'MOVE' : 'IN', p: it.p, wh: wh, loc: it.loc };
+            if (cur) { ev.fromWh = cur.wh; ev.fromLoc = cur.loc; }
+          }
+        } else if (type === 'OUT') {
+          if (cur) ev = { type: 'OUT', p: it.p, wh: cur.wh, loc: cur.loc, dest: dest || opts.defaultDest || '' };
+          else if (!wh) fail('Paletul nu figurează în stoc și lipsește depozitul.');
+          else { warn('Paletul nu figurează în stoc.'); ev = { type: 'OUT', p: it.p, wh: wh, loc: '', dest: dest || opts.defaultDest || '' }; }
+        }
+        if (ev) {
+          if (note) ev.note = note;
+          if (pc.parsed && pc.parsed.gs1) ev.gs1 = pc.parsed.gs1;
+          ev.ts = it.ts;
+          it.specs.push(ev);
+          applyEvent(sim, { id: 'sim' + r, ts: it.ts, type: ev.type, p: ev.p, wh: ev.wh, loc: ev.loc });
+        }
+      }
+      counts[it.status]++;
+      items.push(it);
+    }
+    return { items: items, counts: counts, cols: cols, headerLine: hd.row + 1 };
+  }
+  function buildLocImport(rows, opts) {
+    var hd = findHeader(rows, 'locatie');
+    if (!hd) return { error: 'Nu găsesc coloana „Locație".' };
+    var whMap = {}, out = [], bad = 0, seen = {};
+    (opts.warehouses || []).forEach(function (w) { whMap[fold(w)] = w; });
+    for (var r = hd.row + 1; r < rows.length; r++) {
+      var row = rows[r] || [], loc = normLoc(cellText(row[hd.cols.locatie]));
+      var wt = hd.cols.depozit != null ? cellText(row[hd.cols.depozit]) : '';
+      var wh = wt ? (whMap[fold(wt)] || '') : (opts.defaultWh || '');
+      if (!loc) continue;
+      if (!wh) { bad++; continue; }
+      var k = lkey(wh, loc);
+      if (!seen[k]) { seen[k] = 1; out.push({ wh: wh, loc: loc }); }
+    }
+    return { locs: out, bad: bad };
+  }
+  function templateAOA() {
+    return [
+      ['Tip', 'Palet', 'Depozit', 'Locatie', 'Data', 'Destinatie', 'Observatii'],
+      ['Intrare', '359400000000000017', 'Orkla', 'A-01-01', '13.10.2026 08:15', '', 'exemplu — șterge rândurile acestea'],
+      ['Mutare', '359400000000000017', 'Orkla', 'A-01-02', '', '', 'data goală = momentul importului'],
+      ['Iesire', '359400000000000017', '', '', '', 'TC', 'la ieșire depozitul și locația nu sunt necesare']
+    ];
+  }
+
+  /* ---------- rapoarte ---------- */
+  function evDetail(e, byId) {
+    if (e.type === 'MOVE') return 'din ' + locTxt(e.fromWh || e.wh, e.fromLoc);
+    if (e.type === 'OUT') return (e.dest ? 'către ' + e.dest : '') + (e.loc ? (e.dest ? ', ' : '') + 'din ' + e.loc : '');
+    if (e.type === 'VOID') { var t = byId && byId.get(e.ref); return t ? 'anulează: ' + TYPE_LABEL[t.type] + ' ' + (t.p || '') + ' (' + fmtDT(t.ts) + ')' : 'anulează o mișcare'; }
+    return '';
+  }
+  function stockList(st) {
+    var a = Array.from(st.stock.values());
+    a.sort(function (x, y) { return x.wh < y.wh ? -1 : x.wh > y.wh ? 1 : x.loc < y.loc ? -1 : x.loc > y.loc ? 1 : x.p < y.p ? -1 : 1; });
+    return a;
+  }
+  function locationList(st) {
+    var out = [];
+    st.locKeys.forEach(function (k) {
+      var parts = k.split('\u0001'), set = st.byLoc.get(k), ps = set ? Array.from(set) : [];
+      out.push({ wh: parts[0], loc: parts[1], pallets: ps, state: ps.length === 0 ? 'liberă' : ps.length === 1 ? 'ocupată' : 'conflict' });
+    });
+    out.sort(function (x, y) { return x.wh < y.wh ? -1 : x.wh > y.wh ? 1 : x.loc < y.loc ? -1 : x.loc > y.loc ? 1 : 0; });
+    return out;
+  }
+  function stockAOA(list, now) {
+    var rows = [['Palet', 'Depozit', 'Locatie', 'Intrat la', 'Ultima miscare', 'Zile in stoc', 'Lot', 'Expira']];
+    list.forEach(function (s) {
+      rows.push([s.p, s.wh, s.loc, { d: s.inTs }, { d: s.lastTs }, Math.max(0, Math.floor((now - s.inTs) / 86400000)), s.gs1 && s.gs1.lot || '', s.gs1 && s.gs1.exp || '']);
+    });
+    return rows;
+  }
+  function movesAOA(list, st, byId) {
+    var rows = [['Data si ora', 'Tip', 'Palet', 'Depozit', 'Locatie', 'Detalii', 'Sursa', 'Dispozitiv', 'Observatii', 'Stare']];
+    list.forEach(function (e) {
+      rows.push([{ d: e.ts }, TYPE_LABEL[e.type] || e.type, e.p || '', e.wh || '', e.loc || '', evDetail(e, byId), SRC_LABEL[e.src] || e.src || '', e.dev || '', e.note || '', st.voided.has(e.id) ? 'anulată' : '']);
+    });
+    return rows;
+  }
+  function locsAOA(list) {
+    var rows = [['Depozit', 'Locatie', 'Stare', 'Palet']];
+    list.forEach(function (l) { rows.push([l.wh, l.loc, l.state, l.pallets.join(', ')]); });
+    return rows;
+  }
+
+  /* ---------- transfer între dispozitive ---------- */
+  var EV_TYPES = { IN: 1, OUT: 1, MOVE: 1, UNLOC: 1, VOID: 1 };
+  function validEvent(e) {
+    if (!e || typeof e.id !== 'string' || !e.id || typeof e.ts !== 'number' || !isFinite(e.ts) || !EV_TYPES[e.type]) return false;
+    if (e.type === 'VOID') return typeof e.ref === 'string' && !!e.ref;
+    return typeof e.p === 'string' && !!e.p && typeof e.wh === 'string';
+  }
+  function mergeEvents(haveIds, incoming) {
+    var fresh = [], dup = 0, bad = 0, seen = {};
+    (incoming || []).forEach(function (e) {
+      if (!validEvent(e)) { bad++; return; }
+      if (haveIds.has(e.id) || seen[e.id]) { dup++; return; }
+      seen[e.id] = 1; fresh.push(e);
+    });
+    return { fresh: fresh, dup: dup, bad: bad };
+  }
+  function makeId(dev, ts, n) { return dev + '-' + ts.toString(36) + '-' + (n || Math.floor(Math.random() * 1679616)).toString(36); }
+
+  return {
+    GS: GS, TYPE_LABEL: TYPE_LABEL, SRC_LABEL: SRC_LABEL,
+    pad: pad, fmtD: fmtD, fmtT: fmtT, fmtDT: fmtDT, stamp: stamp, lkey: lkey, fold: fold, normLoc: normLoc,
+    parseGS1: parseGS1, parseScan: parseScan,
+    sortEvents: sortEvents, computeState: computeState, applyEvent: applyEvent, occupants: occupants, classify: classify,
+    planPlace: planPlace, planOut: planOut, scanFlow: scanFlow,
+    parseCSV: parseCSV, toCSV: toCSV, detectDelimiter: detectDelimiter,
+    excelSerial: excelSerial, fromExcelSerial: fromExcelSerial, parseDateText: parseDateText,
+    buildImport: buildImport, buildLocImport: buildLocImport, templateAOA: templateAOA, cellText: cellText,
+    evDetail: evDetail, stockList: stockList, locationList: locationList, stockAOA: stockAOA, movesAOA: movesAOA, locsAOA: locsAOA,
+    validEvent: validEvent, mergeEvents: mergeEvents, makeId: makeId
+  };
+});
+
+</script>
+<script>
+/* Stoc Paleți — interfața și stocarea locală. Logica de stoc este în core.js. */
+(function () {
+  'use strict';
+  var C = window.StocCore;
+  var VERSION = '1.0.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function codeH(p) {
+    p = String(p || '');
+    if (/^\d{18}$/.test(p)) return '<span class="code nb">' + p.slice(0, 12) + '<b>' + p.slice(12) + '</b></span>';
+    return '<span class="code">' + esc(p) + '</span>';
+  }
+  function pill(type) { return '<span class="pill ' + type + '">' + esc(C.TYPE_LABEL[type] || type) + '</span>'; }
+  function opt(v, label, sel) { return '<option value="' + esc(v) + '"' + (sel ? ' selected' : '') + '>' + esc(label) + '</option>'; }
+  function whOpts(sel, emptyLabel) {
+    return (emptyLabel != null ? opt('', emptyLabel, !sel) : '') + cfg.warehouses.map(function (w) { return opt(w, w, w === sel); }).join('');
+  }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (n > 0 && (n % 100 === 0 || n % 100 >= 20) ? 'de ' : '') + many); }
+
+  /* ================= stocare locală ================= */
+  var Store = {
+    db: null, mem: null,
+    open: function () {
+      var self = this;
+      return new Promise(function (res) {
+        var done = false;
+        var fallback = function () { if (done) return; done = true; self.db = null; self.mem = { events: new Map(), meta: new Map() }; res(false); };
+        try {
+          var rq = indexedDB.open('stoc-paleti', 1);
+          rq.onupgradeneeded = function () {
+            var d = rq.result;
+            if (!d.objectStoreNames.contains('events')) d.createObjectStore('events', { keyPath: 'id' });
+            if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'k' });
+          };
+          rq.onsuccess = function () { if (done) return; done = true; self.db = rq.result; self.db.onversionchange = function () { self.db.close(); }; res(true); };
+          rq.onerror = fallback; rq.onblocked = fallback;
+          setTimeout(fallback, 5000);
+        } catch (e) { fallback(); }
+      });
+    },
+    run: function (store, mode, fn) {
+      var self = this;
+      return new Promise(function (res, rej) {
+        try {
+          var tx = self.db.transaction(store, mode), out;
+          tx.oncomplete = function () { res(out && out.result !== undefined ? out.result : undefined); };
+          tx.onerror = tx.onabort = function () { rej(tx.error || new Error('Eroare la salvare')); };
+          out = fn(tx.objectStore(store));
+        } catch (e) { rej(e); }
+      });
+    },
+    allEvents: function () {
+      if (this.mem) return Promise.resolve(Array.from(this.mem.events.values()));
+      return this.run('events', 'readonly', function (os) { return os.getAll(); }).then(function (r) { return r || []; });
+    },
+    put: function (evs) {
+      if (this.mem) { var m = this.mem.events; evs.forEach(function (e) { m.set(e.id, e); }); return Promise.resolve(); }
+      return this.run('events', 'readwrite', function (os) { evs.forEach(function (e) { os.put(e); }); });
+    },
+    del: function (ids) {
+      if (this.mem) { var m = this.mem.events; ids.forEach(function (i) { m.delete(i); }); return Promise.resolve(); }
+      return this.run('events', 'readwrite', function (os) { ids.forEach(function (i) { os.delete(i); }); });
+    },
+    getMeta: function (k) {
+      if (this.mem) return Promise.resolve(this.mem.meta.get(k));
+      return this.run('meta', 'readonly', function (os) { return os.get(k); }).then(function (r) { return r ? r.v : undefined; });
+    },
+    setMeta: function (k, v) {
+      if (this.mem) { this.mem.meta.set(k, v); return Promise.resolve(); }
+      return this.run('meta', 'readwrite', function (os) { os.put({ k: k, v: v }); });
+    },
+    clear: function () {
+      if (this.mem) { this.mem.events.clear(); this.mem.meta.clear(); return Promise.resolve(); }
+      var self = this;
+      return this.run('events', 'readwrite', function (os) { os.clear(); }).then(function () { return self.run('meta', 'readwrite', function (os) { os.clear(); }); });
+    }
+  };
+
+  /* ================= stare ================= */
+  function rnd(n) { var s = ''; while (s.length < n) s += Math.floor(Math.random() * 36).toString(36); return s.toUpperCase(); }
+  function defaults() {
+    return { devId: rnd(4), devName: '', wh: '', warehouses: ['Orkla', 'Douglas'], dests: ['TC'], dest: 'TC', sound: true, vibrate: true, auto: true, kb: false, lastExport: 0, unsent: 0, dirtySince: 0, setup: false, mode: 'IN' };
+  }
+  var cfg = defaults();
+  var S = { events: [], st: C.computeState([], []), byId: new Map(), locs: [] };
+  var ui = { tab: 'scan', mode: 'IN', slots: null, pending: null, result: null, outCount: 0, persisted: null, note: '' };
+  var fs = { view: 'p', wh: '', q: '', state: '', limit: 300 };
+  var fm = { from: '', to: '', type: '', wh: '', q: '', limit: 300 };
+  var lastTs = 0, bc = null;
+
+  function saveCfg() { return Store.setMeta('cfg', cfg).catch(function () { }); }
+  function rebuild() {
+    C.sortEvents(S.events);
+    S.byId = new Map();
+    S.events.forEach(function (e) { S.byId.set(e.id, e); });
+    S.st = C.computeState(S.events, S.locs);
+  }
+  function loadAll() {
+    return Promise.all([Store.allEvents(), Store.getMeta('cfg'), Store.getMeta('locs')]).then(function (r) {
+      S.events = r[0] || [];
+      if (r[1]) { var d = defaults(); for (var k in r[1]) d[k] = r[1][k]; cfg = d; }
+      S.locs = r[2] || [];
+      ui.mode = cfg.mode || 'IN';
+      rebuild();
+    });
+  }
+  function notifyTabs() { try { if (bc) bc.postMessage('changed'); } catch (e) { } }
+  function isOwn(e) { return e.id.indexOf(cfg.devId + '-') === 0; }
+
+  function addEvents(specs, src, group) {
+    var now = Math.max(Date.now(), lastTs + 1);
+    var grp = group !== false && specs.length > 1 ? C.makeId(cfg.devId, now) : null;
+    var evs = specs.map(function (s, i) {
+      var e = {}, k;
+      for (k in s) if (s[k] !== undefined && s[k] !== null && (s[k] !== '' || k === 'loc')) e[k] = s[k];
+      e.ts = s.ts != null ? s.ts : now + i;
+      e.id = C.makeId(cfg.devId, e.ts);
+      e.dev = cfg.devName || cfg.devId; e.src = src;
+      if (grp) e.grp = grp;
+      return e;
+    });
+    lastTs = now + specs.length;
+    return Store.put(evs).then(function () {
+      var inc = true;
+      evs.forEach(function (e) { if (e.type === 'VOID' || e.ts < S.st.maxTs) inc = false; });
+      evs.forEach(function (e) { S.events.push(e); S.byId.set(e.id, e); });
+      if (inc) evs.forEach(function (e) { C.applyEvent(S.st, e); }); else rebuild();
+      cfg.unsent = (cfg.unsent || 0) + evs.length;
+      if (!cfg.dirtySince) cfg.dirtySince = Date.now();
+      saveCfg(); notifyTabs(); renderChrome();
+      return evs;
+    });
+  }
+  function groupOf(e) {
+    if (!e.grp) return [e];
+    return S.events.filter(function (x) { return x.grp === e.grp && x.type !== 'VOID' && !S.st.voided.has(x.id); });
+  }
+  function voidEvents(list) {
+    return addEvents(list.map(function (t) { return { type: 'VOID', ref: t.id, p: t.p, wh: t.wh }; }), 'manual', false);
+  }
+
+  /* ================= semnale pentru operator ================= */
+  var actx = null;
+  function tone(freq, dur, at, type) {
+    try {
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC(); }
+      if (actx.state === 'suspended') actx.resume();
+      var o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + (at || 0);
+      o.type = type || 'square'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) { }
+  }
+  function feedback(kind) {
+    if (cfg.sound) {
+      if (kind === 'ok') { tone(1175, 0.08); tone(1568, 0.12, 0.08); }
+      else if (kind === 'tick') tone(880, 0.06);
+      else if (kind === 'warn') tone(440, 0.22);
+      else if (kind === 'ask') { tone(520, 0.14); tone(520, 0.14, 0.22); }
+      else if (kind === 'bad') { tone(170, 0.3, 0, 'sawtooth'); tone(170, 0.35, 0.36, 'sawtooth'); }
+    }
+    if (cfg.vibrate && navigator.vibrate) {
+      try { navigator.vibrate(kind === 'bad' ? [260, 110, 260] : kind === 'ask' ? [120, 80, 120] : kind === 'ok' ? 40 : 20); } catch (e) { }
+    }
+    if (kind === 'bad') {
+      var el = $('tab-scan'); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    }
+  }
+  var toastTimer = null;
+  function toast(msg, label, fn, ms) {
+    var t = $('toast');
+    t.innerHTML = '<div><span>' + esc(msg) + '</span>' + (label ? '<button type="button">' + esc(label) + '</button>' : '') + '</div>';
+    t.hidden = false;
+    if (label) t.querySelector('button').onclick = function () { t.hidden = true; fn(); };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, ms || (label ? 12000 : 4200));
+  }
+
+  /* ================= ferestre ================= */
+  var dlgOnClose = null, askResolve = null;
+  function openDlg(html, wide, onClose) {
+    $('dlg').innerHTML = '<div class="dbox' + (wide ? ' wide' : '') + '" role="dialog" aria-modal="true"><button class="x" type="button" data-act="dlg-x" aria-label="Închide">×</button>' + html + '</div>';
+    $('dlg').hidden = false; $('dlg').scrollTop = 0;
+    dlgOnClose = onClose || null;
+    var f = $('dlg').querySelector('[data-focus]');
+    if (f) try { f.focus(); } catch (e) { }
+  }
+  function closeDlg() {
+    $('dlg').hidden = true; $('dlg').innerHTML = '';
+    var f = dlgOnClose; dlgOnClose = null;
+    if (askResolve) { var r = askResolve; askResolve = null; r(false); }
+    if (f) f();
+    focusScan();
+  }
+  function ask(title, text, okLabel, danger) {
+    return new Promise(function (res) {
+      openDlg('<h2>' + esc(title) + '</h2><p>' + esc(text) + '</p><div class="foot"><button type="button" class="btn" data-act="ask-no">Renunță</button><button type="button" class="btn pri' + (danger ? ' danger' : '') + '" data-act="ask-yes">' + esc(okLabel) + '</button></div>');
+      askResolve = res;
+    });
+  }
+
+  /* ================= cadrul paginii ================= */
+  function renderChrome() {
+    var i = cfg.warehouses.indexOf(cfg.wh);
+    $('app').setAttribute('data-wh', i < 0 ? 3 : Math.min(i, 3));
+    $('whName').textContent = cfg.wh || 'alege';
+    var n = 0;
+    S.st.stock.forEach(function (s) { if (s.wh === cfg.wh) n++; });
+    $('topInfo').innerHTML = '<div>' + esc(cfg.devName || 'Dispozitiv ' + cfg.devId) + '</div><div>' +
+      (Store.mem ? '<span class="bad">DATELE NU SE SALVEAZĂ</span>' : cfg.wh ? '<b>' + n + '</b> ' + (n === 1 ? 'palet' : 'paleți') + ' în stoc' : '') + '</div>';
+    $('dataDot').hidden = !(cfg.unsent && cfg.dirtySince && Date.now() - cfg.dirtySince > 20 * 3600000);
+  }
+  function showTab(tab) {
+    ui.tab = tab;
+    ['scan', 'stock', 'moves', 'data', 'settings'].forEach(function (t) { $('tab-' + t).hidden = t !== tab; });
+    Array.prototype.forEach.call($('nav').querySelectorAll('button'), function (b) {
+      if (b.getAttribute('data-tab') === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    $('main').scrollTop = 0;
+    renderTab();
+  }
+  function renderTab() {
+    renderChrome();
+    if (ui.tab === 'scan') { renderScan(); focusScan(); }
+    else if (ui.tab === 'stock') renderStock();
+    else if (ui.tab === 'moves') renderMoves();
+    else if (ui.tab === 'data') renderData();
+    else renderSettings();
+  }
+
+  /* ================= scanare ================= */
+  var inp = $('scanInput'), burst = { last: 0, len: 0, fast: 0, timer: null }, scanQ = Promise.resolve();
+  function focusScan() {
+    if (ui.tab !== 'scan' || !$('dlg').hidden) return;
+    var a = document.activeElement;
+    if (a && a !== inp && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;
+    try { inp.focus({ preventScroll: true }); } catch (e) { inp.focus(); }
+  }
+  function submitScan() {
+    clearTimeout(burst.timer); burst.fast = 0; burst.len = 0;
+    var v = inp.value; inp.value = '';
+    if (!v || !v.trim()) return;
+    scanQ = scanQ.then(function () { return onScan(v); }).catch(function (e) {
+      ui.result = { kind: 'error', msg: 'Nu am putut salva: ' + (e && e.message || e) + '. Scanează din nou.' }; feedback('bad'); renderScan();
+    });
+  }
+  function onScan(raw) {
+    var parsed = C.parseScan(raw);
+    if (!parsed) return;
+    if (!cfg.wh) { ui.result = { kind: 'error', msg: 'Alege întâi depozitul activ (butonul din stânga sus).' }; feedback('bad'); renderScan(); return; }
+    if (ui.pending) { ui.note = 'Răspunde întâi la întrebare. Codul ' + parsed.id + ' nu a fost luat în calcul.'; feedback('bad'); renderScan(); return; }
+    var r = C.scanFlow(ui.mode, ui.slots, S.st, cfg.wh, cfg.dest, parsed), o = r.out;
+    ui.slots = r.slots; ui.note = '';
+    if (o.kind === 'need') { ui.result = o.msg ? { kind: 'warn', msg: o.msg } : null; feedback(o.warn ? 'warn' : 'tick'); }
+    else if (o.kind === 'error') { ui.slots = null; ui.result = { kind: o.soft ? 'warn' : 'error', msg: o.msg }; feedback(o.soft ? 'warn' : 'bad'); }
+    else if (o.kind === 'info') { ui.result = { kind: 'info', info: o.info }; feedback('tick'); }
+    else if (o.kind === 'plan') {
+      if (o.plan.status === 'ok') return commitPlan(o.plan);
+      ui.pending = { plan: o.plan, pid: o.pid }; ui.result = null; feedback('ask');
+    }
+    renderScan();
+  }
+  function commitPlan(plan) {
+    return addEvents(plan.events, 'scan').then(function (evs) {
+      var main = evs[evs.length - 1];
+      ui.slots = null; ui.pending = null; ui.note = '';
+      ui.result = { kind: 'ok', ev: main, ids: evs.map(function (e) { return e.id; }) };
+      if (main.type === 'OUT') ui.outCount++;
+      feedback('ok'); renderScan();
+    });
+  }
+  function slotH(k, v, next, sub) {
+    return '<div class="slot' + (next ? ' next' : '') + '"><span class="k">' + k + '</span><span class="v">' +
+      (v ? esc(v) + (sub ? '<small>' + esc(sub) + '</small>' : '') : (next ? 'scanează acum' : '—')) + '</span></div>';
+  }
+  function okText(e) {
+    if (e.type === 'IN') return ['Intrare înregistrată', esc(e.wh) + ' / <b>' + esc(e.loc || 'fără locație') + '</b>'];
+    if (e.type === 'MOVE') return ['Palet mutat', esc(e.fromLoc || 'fără locație') + (e.fromWh && e.fromWh !== e.wh ? ' (' + esc(e.fromWh) + ')' : '') + ' → <b>' + esc(e.loc) + '</b>' + (e.fromWh && e.fromWh !== e.wh ? ' (' + esc(e.wh) + ')' : '')];
+    return ['Ieșire înregistrată', (e.dest ? 'către <b>' + esc(e.dest) + '</b>' : '') + (e.loc ? ' · locația ' + esc(e.loc) + ' s-a eliberat' : '')];
+  }
+  function infoH(info) {
+    var h = '';
+    if (info.what === 'location') {
+      var n = info.pallets.length;
+      h += '<div class="muted">Locația · ' + esc(info.wh) + '</div><div class="big-code">' + esc(info.loc) + '</div>';
+      h += n === 0 ? '<span class="pill big free">Liberă</span>' : n === 1 ? '<span class="pill big occ">Ocupată</span>' : '<span class="pill big conf">' + n + ' paleți — conflict</span>';
+      info.pallets.forEach(function (p) {
+        var s = S.st.stock.get(p);
+        h += '<div class="row"><div>' + codeH(p) + '<div class="muted">aici din ' + C.fmtDT(s ? s.lastTs : 0) + '</div></div><button type="button" class="btn sm" data-act="pal" data-p="' + esc(p) + '">Detalii</button></div>';
+      });
+      info.other.forEach(function (o) { h += '<div class="row"><div class="muted">Aceeași locație în ' + esc(o.wh) + ': ' + o.pallets.map(esc).join(', ') + '</div></div>'; });
+    } else if (info.what === 'pallet') {
+      h += '<div class="muted">Palet</div><div class="big-code">' + esc(info.id) + '</div>';
+      if (info.cur) h += '<span class="pill big occ">În stoc</span><div class="row"><div><b>' + esc(info.cur.wh) + ' / ' + esc(info.cur.loc || 'fără locație') + '</b><div class="muted">intrat la ' + C.fmtDT(info.cur.inTs) + '</div></div>';
+      else h += '<span class="pill big conf">Nu este în stoc</span><div class="row"><div class="muted">' + (info.last ? 'Ultima mișcare: ' + esc(C.TYPE_LABEL[info.last.type]) + ', ' + C.fmtDT(info.last.ts) : 'Nu a fost înregistrat niciodată pe acest dispozitiv.') + '</div>';
+      h += '<button type="button" class="btn sm" data-act="pal" data-p="' + esc(info.id) + '">Detalii</button></div>';
+    } else {
+      h += '<div class="muted">Cod necunoscut</div><div class="big-code">' + esc(info.id) + '</div><p>Nu figurează ca palet în stoc și nicio locație cu acest cod nu a fost folosită în ' + esc(info.wh) + '. Dacă este o locație, atunci este <b>liberă</b>.</p>';
+    }
+    return '<div class="res info">' + h + '</div>';
+  }
+  function renderScan() {
+    var m = ui.mode, P = ui.slots && ui.slots.P, L = ui.slots && ui.slots.L, h = '', askT = '';
+    Array.prototype.forEach.call($('modes').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m ? 'true' : 'false'); });
+    $('panel').setAttribute('data-mode', m);
+    $('panelHead').textContent = ({ IN: 'Intrare în ', OUT: 'Ieșire din ', MOVE: 'Mutare în ', CHECK: 'Verificare în ' })[m] + (cfg.wh || '—');
+    if (m === 'IN') {
+      askT = P && !L ? 'Scanează locația' : 'Scanează paletul';
+      h = slotH('Palet', P && P.id, !P) + slotH('Locație', L, !!P && !L);
+    } else if (m === 'MOVE') {
+      var cur = P && S.st.stock.get(P.id);
+      askT = P ? 'Scanează locația nouă' : 'Scanează paletul sau locația lui';
+      h = slotH('Palet', P && P.id, !P, cur ? 'acum: ' + cur.wh + ' / ' + (cur.loc || 'fără locație') : (P ? 'nu figurează în stoc' : '')) + slotH('Mută la', L, !!P && !L);
+    } else if (m === 'OUT') {
+      askT = 'Scanează paletul care iese';
+      h = '<div class="outbar"><span>Destinație: <b>' + esc(cfg.dest || '—') + '</b>' + (cfg.dests.length > 1 ? '<button type="button" data-act="pick-dest">Schimbă</button>' : '') +
+        '</span><span>Scanați: <b>' + ui.outCount + '</b>' + (ui.outCount ? '<button type="button" data-act="out-zero">Zero</button>' : '') + '</span></div>';
+    } else { askT = 'Scanează o locație sau un palet'; }
+    if (ui.pending) { askT = 'Răspunde mai jos'; h = ''; }
+    $('ask').textContent = askT;
+    $('slots').innerHTML = h + (ui.slots || ui.pending ? '<button type="button" class="mini" data-act="scan-cancel">Renunță</button>' : '');
+
+    var r = '';
+    if (ui.pending) {
+      r = '<div class="res ask"><div class="t">Confirmi?</div><div class="d">Palet ' + codeH(ui.pending.pid) + '</div>' +
+        ui.pending.plan.questions.map(function (q) { return '<div class="d">' + esc(q) + '</div>'; }).join('') +
+        (ui.note ? '<div class="d"><b>' + esc(ui.note) + '</b></div>' : '') +
+        '<div class="acts"><button type="button" class="btn" data-act="pend-no">Nu</button><button type="button" class="btn pri" data-act="pend-yes">Da, continuă</button></div></div>';
+    } else if (ui.result) {
+      var x = ui.result;
+      if (x.kind === 'ok') {
+        var tx = okText(x.ev);
+        r = '<div class="res ok"><div class="th"><div class="t">✓ ' + tx[0] + '</div><button type="button" class="btn sm" data-act="undo">Anulează</button></div><div class="d">' + codeH(x.ev.p) + '</div><div class="d">' + tx[1] + ' · ' + C.fmtT(x.ev.ts) + '</div></div>';
+      } else if (x.kind === 'info') r = infoH(x.info);
+      else r = '<div class="res ' + (x.kind === 'error' ? 'bad' : 'warn') + '"><div class="t">' + esc(x.msg) + '</div></div>';
+    }
+    $('result').innerHTML = r;
+    if (ui.pending) { var m0 = $('main'); m0.scrollTop = m0.scrollHeight; } else $('main').scrollTop = 0;
+
+    var rec = [], i;
+    for (i = S.events.length - 1; i >= 0 && rec.length < 6; i--) { var e = S.events[i]; if (e.type !== 'VOID' && e.src !== 'demo' && isOwn(e)) rec.push(e); }
+    $('recent').innerHTML = rec.length ? '<div class="sec-h">Ultimele mișcări de pe acest dispozitiv</div>' + rec.map(function (e) {
+      return '<div class="rec' + (S.st.voided.has(e.id) ? ' void' : '') + '">' + pill(e.type) + '<div>' + codeH(e.p) + '<div class="w">' + esc(e.wh) + (e.loc ? ' / ' + esc(e.loc) : '') + (e.type === 'OUT' && e.dest ? ' → ' + esc(e.dest) : '') + '</div></div><span class="w nowrap">' + C.fmtT(e.ts) + '</span></div>';
+    }).join('') : '';
+    inp.setAttribute('inputmode', cfg.kb ? 'text' : 'none');
+    $('kbBtn').setAttribute('aria-pressed', cfg.kb ? 'true' : 'false');
+  }
+
+  /* ================= stoc ================= */
+  function needle(q) { var p = C.parseScan(q); return p ? { id: p.id, raw: p.loc } : null; }
+  function filteredStock() {
+    var nd = needle(fs.q);
+    return C.stockList(S.st).filter(function (s) {
+      if (fs.wh && s.wh !== fs.wh) return false;
+      if (fs.state === 'noloc' && s.loc) return false;
+      if (nd && s.p.indexOf(nd.id) < 0 && s.p.indexOf(nd.raw) < 0 && s.loc.indexOf(nd.raw) < 0) return false;
+      return true;
+    });
+  }
+  function filteredLocs() {
+    var nd = needle(fs.q);
+    return C.locationList(S.st).filter(function (l) {
+      if (fs.wh && l.wh !== fs.wh) return false;
+      if (fs.state && fs.state !== 'noloc' && l.state !== fs.state) return false;
+      if (nd && l.loc.indexOf(nd.raw) < 0 && !l.pallets.some(function (p) { return p.indexOf(nd.id) >= 0; })) return false;
+      return true;
+    });
+  }
+  function hasDemo() { return S.events.some(function (e) { return e.src === 'demo'; }); }
+  function demoNote() {
+    return hasDemo() ? '<div class="note"><span><b>Date demonstrative.</b> Paleții și locațiile de mai jos sunt exemple, nu stocul real.</span><button type="button" class="btn sm" data-act="demo-del">Șterge datele demo</button></div>' : '';
+  }
+  function renderStock() {
+    var st = S.st, cnt = {}, today = {}, noloc = 0, conf = 0, d0 = new Date(); d0.setHours(0, 0, 0, 0); d0 = d0.getTime();
+    cfg.warehouses.forEach(function (w) { cnt[w] = 0; today[w] = [0, 0]; });
+    st.stock.forEach(function (s) { cnt[s.wh] = (cnt[s.wh] || 0) + 1; if (!s.loc) noloc++; });
+    st.byLoc.forEach(function (set) { if (set.size > 1) conf++; });
+    for (var i = S.events.length - 1; i >= 0 && S.events[i].ts >= d0; i--) {
+      var e = S.events[i];
+      if (st.voided.has(e.id) || !today[e.wh]) continue;
+      if (e.type === 'IN') today[e.wh][0]++; else if (e.type === 'OUT') today[e.wh][1]++;
+    }
+    var h = demoNote() + '<div class="kpis">';
+    cfg.warehouses.forEach(function (w, ix) {
+      h += '<div class="kpi" data-wh="' + Math.min(ix, 3) + '"><div class="l">' + esc(w) + '</div><div class="n">' + (cnt[w] || 0) + '</div><div class="s"><span class="hide-sm">paleți în stoc · </span>azi +' + today[w][0] + ' / −' + today[w][1] + '</div></div>';
+    });
+    if (noloc) h += '<div class="kpi alert"><div class="l">Fără locație</div><div class="n">' + noloc + '</div><div class="s">paleți în stoc a căror locație a fost preluată</div></div>';
+    if (conf) h += '<div class="kpi alert"><div class="l">Conflicte</div><div class="n">' + conf + '</div><div class="s">locații pe care figurează mai mulți paleți</div></div>';
+    h += '</div>';
+    if (!S.events.length) {
+      h += '<div class="card"><h3>Încă nu există stoc pe acest dispozitiv</h3><p>Încarcă stocul inițial dintr-un fișier Excel sau CSV, ori începe direct cu scanarea intrărilor.</p><div class="btns"><button type="button" class="btn pri" data-tab="data">Importă stocul inițial</button><button type="button" class="btn" data-tab="scan">Scanează</button><button type="button" class="btn" data-act="demo-add">Încarcă date demo</button></div></div>';
+      $('tab-stock').innerHTML = h; return;
+    }
+    h += '<div class="bar"><div class="seg"><button type="button" data-act="sv" data-v="p" aria-pressed="' + (fs.view === 'p') + '">Paleți</button><button type="button" data-act="sv" data-v="l" aria-pressed="' + (fs.view === 'l') + '">Locații</button></div>' +
+      '<label class="fld grow"><span>Caută palet sau locație</span><input class="inp" id="fsQ" data-f="fs.q" type="search" value="' + esc(fs.q) + '" placeholder="scanează sau tastează" autocomplete="off"></label>' +
+      '<button type="button" class="btn sm only-sm" data-act="flt" aria-expanded="' + !!ui.flt + '">' + (ui.flt ? 'Ascunde filtrele' : 'Filtre și export') + '</button><div class="more' + (ui.flt ? ' open' : '') + '">' +
+      '<label class="fld"><span>Depozit</span><select class="inp" id="fsWh" data-f="fs.wh">' + whOpts(fs.wh, 'Toate') + '</select></label>' +
+      '<label class="fld"><span>' + (fs.view === 'p' ? 'Arată' : 'Stare') + '</span><select class="inp" id="fsState" data-f="fs.state">' +
+      (fs.view === 'p' ? opt('', 'Toți paleții', !fs.state) + opt('noloc', 'Doar fără locație', fs.state === 'noloc')
+        : opt('', 'Toate', !fs.state) + opt('ocupată', 'Ocupate', fs.state === 'ocupată') + opt('liberă', 'Libere', fs.state === 'liberă') + opt('conflict', 'Conflict', fs.state === 'conflict')) + '</select></label>' +
+      '<div class="btns"><button type="button" class="btn" data-act="x-stock" data-fmt="xlsx">Excel</button><button type="button" class="btn" data-act="x-stock" data-fmt="csv">CSV</button></div></div></div>' +
+      '<div id="stockBody"></div>';
+    $('tab-stock').innerHTML = h;
+    renderStockBody();
+  }
+  function narrow() { return window.innerWidth < 700; }
+  function renderStockBody() {
+    var el = $('stockBody'), h, list, now = Date.now();
+    if (!el) return;
+    if (narrow()) {
+      list = fs.view === 'p' ? filteredStock() : filteredLocs();
+      h = '<div class="tw">';
+      if (fs.view === 'p') list.slice(0, fs.limit).forEach(function (s) {
+        h += '<button type="button" class="lrow" data-act="pal" data-p="' + esc(s.p) + '"><span>' + codeH(s.p) + '</span>' + (s.loc ? '<b class="code">' + esc(s.loc) + '</b>' : '<span class="pill UNLOC">fără locație</span>') + '<span class="c">' + esc(s.wh) + ' · intrat la ' + C.fmtDT(s.inTs).slice(0, 16) + '</span></button>';
+      });
+      else list.slice(0, fs.limit).forEach(function (l) {
+        h += '<div class="lrow"><b class="code">' + esc(l.loc) + '</b><span class="pill ' + (l.state === 'liberă' ? 'free' : l.state === 'ocupată' ? 'occ' : 'conf') + '">' + l.state + '</span><span class="c">' + esc(l.wh) + (l.pallets.length ? ' · ' : '') + l.pallets.map(function (p) { return '<button type="button" class="btn sm" data-act="pal" data-p="' + esc(p) + '">' + codeH(p) + '</button>'; }).join(' ') + '</span></div>';
+      });
+      if (!list.length) h += '<div class="empty">' + (fs.view === 'p' ? 'Niciun palet nu corespunde filtrului.' : 'Nicio locație nu corespunde filtrului.') + '</div>';
+      h += '</div>';
+    } else if (fs.view === 'p') {
+      list = filteredStock();
+      h = '<div class="tw"><table><thead><tr><th>Palet</th><th>Depozit</th><th>Locație</th><th class="hide-sm">Intrat la</th><th class="hide-sm">Ultima mișcare</th><th class="num hide-sm">Zile</th><th></th></tr></thead><tbody>';
+      list.slice(0, fs.limit).forEach(function (s) {
+        h += '<tr><td>' + codeH(s.p) + '</td><td>' + esc(s.wh) + '</td><td>' + (s.loc ? '<span class="code">' + esc(s.loc) + '</span>' : '<span class="pill UNLOC">fără locație</span>') + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.inTs) + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.lastTs) + '</td><td class="num hide-sm">' + Math.max(0, Math.floor((now - s.inTs) / 86400000)) + '</td><td class="act"><button type="button" class="btn sm" data-act="pal" data-p="' + esc(s.p) + '">Detalii</button></td></tr>';
+      });
+      if (!list.length) h += '<tr><td colspan="7" class="empty">Niciun palet nu corespunde filtrului.</td></tr>';
+      h += '</tbody></table></div>';
+    } else {
+      list = filteredLocs();
+      h = '<div class="tw"><table><thead><tr><th>Depozit</th><th>Locație</th><th>Stare</th><th>Palet</th></tr></thead><tbody>';
+      list.slice(0, fs.limit).forEach(function (l) {
+        h += '<tr><td>' + esc(l.wh) + '</td><td><span class="code">' + esc(l.loc) + '</span></td><td><span class="pill ' + (l.state === 'liberă' ? 'free' : l.state === 'ocupată' ? 'occ' : 'conf') + '">' + l.state + '</span></td><td>' + l.pallets.map(function (p) { return '<button type="button" class="btn sm" data-act="pal" data-p="' + esc(p) + '">' + codeH(p) + '</button>'; }).join(' ') + '</td></tr>';
+      });
+      if (!list.length) h += '<tr><td colspan="4" class="empty">Nicio locație nu corespunde filtrului. Locațiile apar aici după prima folosire sau după importul listei de locații.</td></tr>';
+      h += '</tbody></table></div>';
+    }
+    h += '<div class="count">' + (list.length > fs.limit ? 'Primele ' + fs.limit + ' din ' + list.length + ' · <button type="button" class="btn sm" data-act="more-stock">Arată mai multe</button>' : plural(list.length, fs.view === 'p' ? 'palet' : 'locație', fs.view === 'p' ? 'paleți' : 'locații')) + '</div>';
+    el.innerHTML = h;
+  }
+
+  /* ================= mișcări ================= */
+  function dayStart(s, end) { var m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3] + (end ? 1 : 0)).getTime() : 0; }
+  function filteredMoves() {
+    var a = dayStart(fm.from), b = dayStart(fm.to, true), nd = needle(fm.q), out = [];
+    for (var i = S.events.length - 1; i >= 0; i--) {
+      var e = S.events[i];
+      if (a && e.ts < a) break;
+      if (b && e.ts >= b) continue;
+      if (fm.type && e.type !== fm.type) continue;
+      if (fm.wh && e.wh !== fm.wh) continue;
+      if (nd && (e.p || '').indexOf(nd.id) < 0 && (e.p || '').indexOf(nd.raw) < 0 && (e.loc || '').indexOf(nd.raw) < 0 && (e.fromLoc || '').indexOf(nd.raw) < 0) continue;
+      out.push(e);
+    }
+    return out;
+  }
+  function renderMoves() {
+    var tOpts = opt('', 'Toate', !fm.type);
+    ['IN', 'OUT', 'MOVE', 'UNLOC', 'VOID'].forEach(function (t) { tOpts += opt(t, C.TYPE_LABEL[t], fm.type === t); });
+    $('tab-moves').innerHTML = demoNote() + '<div class="bar">' +
+      '<label class="fld grow"><span>Caută palet sau locație</span><input class="inp" id="fmQ" data-f="fm.q" type="search" value="' + esc(fm.q) + '" placeholder="scanează sau tastează" autocomplete="off"></label>' +
+      '<button type="button" class="btn sm only-sm" data-act="flt" aria-expanded="' + !!ui.flt + '">' + (ui.flt ? 'Ascunde filtrele' : 'Filtre și export') + '</button><div class="more' + (ui.flt ? ' open' : '') + '">' +
+      '<label class="fld"><span>De la</span><input class="inp" id="fmFrom" data-f="fm.from" type="date" value="' + esc(fm.from) + '"></label>' +
+      '<label class="fld"><span>Până la</span><input class="inp" id="fmTo" data-f="fm.to" type="date" value="' + esc(fm.to) + '"></label>' +
+      '<label class="fld"><span>Tip</span><select class="inp" id="fmType" data-f="fm.type">' + tOpts + '</select></label>' +
+      '<label class="fld"><span>Depozit</span><select class="inp" id="fmWh" data-f="fm.wh">' + whOpts(fm.wh, 'Toate') + '</select></label>' +
+      '<div class="btns"><button type="button" class="btn" data-act="x-moves" data-fmt="xlsx">Excel</button><button type="button" class="btn" data-act="x-moves" data-fmt="csv">CSV</button></div></div></div><div id="movesBody"></div>';
+    renderMovesBody();
+  }
+  function renderMovesBody() {
+    var el = $('movesBody'); if (!el) return;
+    var list = filteredMoves(), st = S.st, h;
+    if (narrow()) {
+      h = '<div class="tw">';
+      list.slice(0, fm.limit).forEach(function (e) {
+        var v = st.voided.has(e.id), det = C.evDetail(e, S.byId);
+        h += '<div class="mrow' + (v ? ' void' : '') + '"><div class="h">' + pill(e.type) + '<span class="w">' + C.fmtDT(e.ts) + '</span>' +
+          (v ? '<span class="muted">anulată</span>' : e.type === 'VOID' ? '<span></span>' : '<button type="button" class="btn sm" data-act="void" data-id="' + esc(e.id) + '">Anulează</button>') + '</div>' +
+          '<div class="sx">' + (e.p ? codeH(e.p) : '') + '</div><div class="w">' + esc(e.wh || '') + (e.loc ? ' / ' + esc(e.loc) : '') + (det ? ' · ' + esc(det) : '') + (e.note ? ' · ' + esc(e.note) : '') + '</div></div>';
+      });
+      if (!list.length) h += '<div class="empty">' + (S.events.length ? 'Nicio mișcare nu corespunde filtrului.' : 'Încă nu există mișcări.') + '</div>';
+      h += '</div>';
+    } else {
+    h = '<div class="tw"><table><thead><tr><th>Data și ora</th><th>Tip</th><th>Palet</th><th class="hide-sm">Depozit</th><th>Locație</th><th class="hide-sm">Detalii</th><th class="hide-sm">Sursă</th><th class="hide-sm">Dispozitiv</th><th></th></tr></thead><tbody>';
+    list.slice(0, fm.limit).forEach(function (e) {
+      var v = st.voided.has(e.id);
+      h += '<tr' + (v ? ' class="void"' : '') + '><td class="nowrap">' + C.fmtDT(e.ts) + '</td><td>' + pill(e.type) + '</td><td class="sx">' + (e.p ? codeH(e.p) : '') + '</td><td class="hide-sm sx">' + esc(e.wh || '') + '</td><td class="sx"><span class="code">' + esc(e.loc || '') + '</span></td><td class="hide-sm">' + esc(C.evDetail(e, S.byId)) + (e.note ? (C.evDetail(e, S.byId) ? ' · ' : '') + esc(e.note) : '') + '</td><td class="hide-sm">' + esc(C.SRC_LABEL[e.src] || e.src || '') + '</td><td class="hide-sm">' + esc(e.dev || '') + '</td><td class="act">' +
+        (v ? '<span class="muted">anulată</span>' : e.type === 'VOID' ? '' : '<button type="button" class="btn sm" data-act="void" data-id="' + esc(e.id) + '">Anulează</button>') + '</td></tr>';
+    });
+    if (!list.length) h += '<tr><td colspan="9" class="empty">' + (S.events.length ? 'Nicio mișcare nu corespunde filtrului.' : 'Încă nu există mișcări.') + '</td></tr>';
+    h += '</tbody></table></div>';
+    }
+    h += '<div class="count">' + (list.length > fm.limit ? 'Primele ' + fm.limit + ' din ' + list.length + ' · <button type="button" class="btn sm" data-act="more-moves">Arată mai multe</button>' : plural(list.length, 'mișcare', 'mișcări')) + '</div>';
+    el.innerHTML = h;
+  }
+
+  /* ================= fișiere: citire și salvare ================= */
+  var xlsxLoading = null;
+  function loadXLSX() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (!xlsxLoading) xlsxLoading = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = XLSX_URL;
+      s.onload = function () { window.XLSX ? res(window.XLSX) : rej(new Error('Biblioteca Excel nu s-a încărcat.')); };
+      s.onerror = function () { xlsxLoading = null; rej(new Error('Biblioteca Excel nu s-a putut încărca. Deschide aplicația o dată cu internet, apoi merge și offline.')); };
+      document.head.appendChild(s);
+    });
+    return xlsxLoading;
+  }
+  function saveFile(filename, data, mime) {
+    var useClaude = window.claude && typeof window.claude.use === 'function';
+    var direct = function () {
+      var blob = data instanceof Blob ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+      var a = document.createElement('a'), url = URL.createObjectURL(blob);
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+      return true;
+    };
+    if (!useClaude) return Promise.resolve(direct());
+    return window.claude.use('downloads').then(function (dl) {
+      if (!dl) { toast('Salvarea fișierelor nu este disponibilă în această previzualizare.'); return false; }
+      return dl.save({ filename: filename, data: data }).then(function () { return true; });
+    }).catch(function (e) {
+      if (!e || e.code !== 'declined') toast('Fișierul nu a putut fi salvat' + (e && e.message ? ': ' + e.message : '.'));
+      return false;
+    });
+  }
+  function sheetFromAOA(X, aoa) {
+    var ws = {}, widths = [], nc = 0;
+    aoa.forEach(function (row, r) {
+      if (row.length > nc) nc = row.length;
+      row.forEach(function (v, c) {
+        var cell, len;
+        if (v && typeof v === 'object' && v.d != null) { cell = { t: 'n', v: C.excelSerial(Math.floor(v.d / 1000) * 1000), z: 'dd.mm.yyyy hh:mm:ss' }; len = 19; }
+        else if (typeof v === 'number') { cell = { t: 'n', v: v }; len = String(v).length; }
+        else { v = v == null ? '' : String(v); if (v === '') return; cell = { t: 's', v: v }; len = v.length; }
+        ws[X.utils.encode_cell({ r: r, c: c })] = cell;
+        if (!widths[c] || widths[c] < len) widths[c] = len;
+      });
+    });
+    ws['!ref'] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(0, aoa.length - 1), c: Math.max(0, nc - 1) } });
+    ws['!cols'] = []; for (var i = 0; i < nc; i++) ws['!cols'].push({ wch: Math.min(48, Math.max(9, (widths[i] || 6) + 2)) });
+    if (aoa.length > 1) ws['!autofilter'] = { ref: ws['!ref'] };
+    return ws;
+  }
+  function exportTable(base, sheets, fmt) {
+    var name = base + '-' + C.stamp(Date.now());
+    if (fmt === 'csv') return saveFile(name + '.csv', C.toCSV(sheets[0].aoa), 'text/csv;charset=utf-8');
+    return loadXLSX().then(function (X) {
+      var wb = X.utils.book_new();
+      sheets.forEach(function (s) { X.utils.book_append_sheet(wb, sheetFromAOA(X, s.aoa), s.name); });
+      var out = X.write(wb, { bookType: 'xlsx', type: 'array' });
+      return saveFile(name + '.xlsx', new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    }).catch(function (e) { toast(e.message || String(e)); return false; });
+  }
+  function readBuf(file) {
+    return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = function () { rej(new Error('Fișierul nu a putut fi citit.')); }; fr.readAsArrayBuffer(file); });
+  }
+  function decodeText(buf) {
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+    catch (e) { try { return new TextDecoder('windows-1250').decode(buf); } catch (e2) { return new TextDecoder().decode(buf); } }
+  }
+  function readTable(file) {
+    return readBuf(file).then(function (buf) {
+      if (/\.(csv|txt|tsv)$/i.test(file.name)) return { rows: C.parseCSV(decodeText(buf)), sheet: '' };
+      return loadXLSX().then(function (X) {
+        var wb = X.read(new Uint8Array(buf), { type: 'array' }), name = null, ws = null;
+        wb.SheetNames.some(function (n) { if (wb.Sheets[n] && wb.Sheets[n]['!ref']) { name = n; ws = wb.Sheets[n]; return true; } return false; });
+        if (!ws) throw new Error('Fișierul nu conține date.');
+        var rg = X.utils.decode_range(ws['!ref']), rows = [];
+        if (rg.e.r - rg.s.r > 200000) throw new Error('Fișierul are peste 200.000 de rânduri. Împarte-l în mai multe fișiere.');
+        for (var r = rg.s.r; r <= rg.e.r; r++) {
+          var row = [];
+          for (var c = rg.s.c; c <= Math.min(rg.e.c, rg.s.c + 60); c++) {
+            var cell = ws[X.utils.encode_cell({ r: r, c: c })];
+            row.push(!cell ? '' : (cell.t === 's' || cell.t === 'str') ? String(cell.v) : { t: cell.t, v: cell.v, w: cell.w });
+          }
+          rows.push(row);
+        }
+        return { rows: rows, sheet: name };
+      });
+    });
+  }
+
+  /* ================= pagina Date ================= */
+  var imp = null; // importul în curs de previzualizare
+  function renderData() {
+    var un = cfg.unsent || 0;
+    $('tab-data').innerHTML = '<div class="cards">' +
+      '<div class="card"><h2>Import mișcări</h2><p>Încarcă intrări, ieșiri sau mutări dintr-un fișier Excel sau CSV. Tot așa se încarcă și stocul inițial: un rând pentru fiecare palet, cu depozitul și locația lui.</p>' +
+      '<label class="fld"><span>Depozit pentru rândurile fără depozit</span><select class="inp" id="impWh">' + whOpts(cfg.wh, 'Niciunul (rândul e respins)') + '</select></label>' +
+      '<label class="fld"><span>Tip pentru rândurile fără tip</span><select class="inp" id="impType">' + opt('IN', 'Intrare', true) + opt('OUT', 'Ieșire') + opt('MOVE', 'Mutare') + '</select></label>' +
+      '<div class="btns"><button type="button" class="btn pri" data-act="pick-file" data-for="impFile">Alege fișierul</button><button type="button" class="btn" data-act="tpl">Descarcă șablonul</button></div>' +
+      '<input type="file" id="impFile" accept=".xlsx,.xls,.xlsm,.csv,.txt" hidden><p class="muted" style="margin-top:10px">Coloane recunoscute: Tip, Palet (sau SSCC), Depozit, Locație, Data, Destinație, Observații. Doar coloana Palet este obligatorie. Vezi fiecare rând înainte de a confirma.</p></div>' +
+
+      '<div class="card"><h2>Transfer între dispozitive</h2><p>Cât timp aplicația lucrează fără internet, fiecare dispozitiv își ține propriile date. Ca să le aduni: salvezi fișierul de pe fiecare scanner și îl încarci pe celălalt dispozitiv. Mișcările identice nu se dublează, deci poți încărca același fișier de mai multe ori.</p>' +
+      '<p><b>' + (un ? plural(un, 'mișcare nouă', 'mișcări noi') + ' de la ultimul fișier salvat' : (cfg.lastExport ? 'Toate mișcările sunt în ultimul fișier salvat' : 'Încă nu ai salvat niciun fișier')) + '</b>' + (cfg.lastExport ? ' · ultimul fișier: ' + C.fmtDT(cfg.lastExport) : '') + '</p>' +
+      '<div class="btns"><button type="button" class="btn pri" data-act="sync-out">Salvează fișierul de transfer</button><button type="button" class="btn" data-act="pick-file" data-for="syncFile">Încarcă fișiere de transfer</button></div>' +
+      '<input type="file" id="syncFile" accept=".json,application/json" multiple hidden><p class="muted" style="margin-top:10px">Fișierul de transfer este și copia de siguranță a dispozitivului. Păstrează-l pe PC.</p></div>' +
+
+      '<div class="card"><h2>Raport complet</h2><p>Un singur fișier Excel cu trei foi: stocul curent, toate mișcările și starea locațiilor, pentru toate depozitele.</p><div class="btns"><button type="button" class="btn pri" data-act="x-all">Descarcă raportul Excel</button></div></div>' +
+
+      '<div class="card"><h2>Lista de locații</h2><p>Opțional. Dacă încarci lista locațiilor din fiecare depozit, raportul de locații arată și locațiile libere care nu au fost folosite niciodată. Scanarea nu este blocată pentru locațiile care lipsesc din listă.</p>' +
+      '<p><b>' + plural(S.locs.length, 'locație încărcată', 'locații încărcate') + '</b></p><div class="btns"><button type="button" class="btn" data-act="pick-file" data-for="locFile">Încarcă lista (Depozit, Locație)</button></div><input type="file" id="locFile" accept=".xlsx,.xls,.xlsm,.csv,.txt" hidden></div>' +
+      '</div>';
+  }
+  function importPreview() {
+    var r = imp.res, c = r.counts, good = c.ok + c.warn, onlyBad = imp.onlyBad;
+    var rows = r.items.filter(function (it) { return !onlyBad || it.status !== 'ok'; });
+    var h = '<h2>Import: ' + esc(imp.name) + '</h2><p><span class="st-ok">' + c.ok + ' valide</span> · <span class="st-warn">' + c.warn + ' cu avertizare</span> · <span class="st-dup">' + c.dup + ' deja existente</span> · <span class="st-err">' + c.err + ' cu eroare</span></p>' +
+      '<p class="muted">Se importă rândurile valide și cele cu avertizare. Rândurile cu eroare și cele deja existente sunt sărite.</p>' +
+      '<label class="chk"><input type="checkbox" id="impOnlyBad"' + (onlyBad ? ' checked' : '') + '>Arată doar rândurile cu probleme</label>' +
+      '<div class="tw" style="max-height:46vh;overflow:auto"><table><thead><tr><th>Rând</th><th>Stare</th><th>Tip</th><th>Palet</th><th>Depozit</th><th>Locație</th><th>Data</th><th>Explicație</th></tr></thead><tbody>';
+    rows.slice(0, 400).forEach(function (it) {
+      var lab = { ok: 'valid', warn: 'avertizare', dup: 'există', err: 'eroare' }[it.status];
+      h += '<tr><td class="num">' + it.line + '</td><td class="st-' + it.status + '">' + lab + '</td><td>' + (it.specs[0] ? pill(it.specs[0].type) : esc(C.TYPE_LABEL[it.type] || '')) + '</td><td>' + (it.p ? codeH(it.p) : '') + '</td><td>' + esc(it.specs[0] ? it.specs[0].wh : it.wh) + '</td><td><span class="code">' + esc(it.loc) + '</span></td><td class="nowrap">' + (it.ts ? C.fmtDT(it.ts) : '') + '</td><td>' + esc(it.msgs.join(' ')) + '</td></tr>';
+    });
+    if (!rows.length) h += '<tr><td colspan="8" class="empty">Niciun rând de arătat.</td></tr>';
+    h += '</tbody></table></div>' + (rows.length > 400 ? '<div class="count">Primele 400 din ' + rows.length + ' rânduri.</div>' : '') +
+      '<div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button><button type="button" class="btn pri" data-act="imp-go"' + (good ? '' : ' disabled') + '>Importă ' + plural(good, 'rând', 'rânduri') + '</button></div>';
+    openDlg(h, true, function () { imp = null; });
+  }
+  function startImport(file) {
+    var defWh = $('impWh') ? $('impWh').value : '', defType = $('impType') ? $('impType').value : 'IN';
+    toast('Citesc fișierul…');
+    readTable(file).then(function (t) {
+      var res = C.buildImport(t.rows, { warehouses: cfg.warehouses, defaultWh: defWh, defaultType: defType, defaultDest: cfg.dest, now: Date.now() }, S.st);
+      $('toast').hidden = true;
+      if (res.error) { openDlg('<h2>Fișierul nu poate fi importat</h2><p>' + esc(res.error) + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); return; }
+      if (!res.items.length) { openDlg('<h2>Fișier fără rânduri</h2><p>Am găsit antetul, dar niciun rând cu date sub el.</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); return; }
+      imp = { name: file.name, res: res, onlyBad: false };
+      importPreview();
+    }).catch(function (e) { $('toast').hidden = true; openDlg('<h2>Fișierul nu a putut fi citit</h2><p>' + esc(e.message || String(e)) + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); });
+  }
+  function startLocImport(file) {
+    readTable(file).then(function (t) {
+      var r = C.buildLocImport(t.rows, { warehouses: cfg.warehouses, defaultWh: cfg.wh });
+      if (r.error) { toast(r.error); return; }
+      var have = {}, added = 0;
+      S.locs.forEach(function (l) { have[C.lkey(l.wh, l.loc)] = 1; });
+      r.locs.forEach(function (l) { var k = C.lkey(l.wh, l.loc); if (!have[k]) { have[k] = 1; S.locs.push(l); added++; } });
+      return Store.setMeta('locs', S.locs).then(function () {
+        rebuild(); notifyTabs(); renderTab();
+        toast(plural(added, 'locație nouă adăugată', 'locații noi adăugate') + (r.bad ? ' · ' + r.bad + ' rânduri cu depozit necunoscut, sărite' : '') + '.');
+      });
+    }).catch(function (e) { toast(e.message || String(e)); });
+  }
+  function syncOut() {
+    var payload = {
+      app: 'stoc-paleti', v: 1, exportedAt: Date.now(), device: { id: cfg.devId, name: cfg.devName },
+      warehouses: cfg.warehouses, dests: cfg.dests,
+      locs: S.locs.filter(function (l) { return !l.demo; }),
+      events: S.events.filter(function (e) { return e.src !== 'demo'; })
+    };
+    var name = 'stoc-transfer-' + (C.fold(cfg.devName) || cfg.devId.toLowerCase()) + '-' + C.stamp(Date.now()) + '.json';
+    saveFile(name, JSON.stringify(payload), 'application/json').then(function (ok) {
+      if (!ok) return;
+      cfg.lastExport = Date.now(); cfg.unsent = 0; cfg.dirtySince = 0; saveCfg(); renderTab();
+      toast('Fișier salvat: ' + name + ' (' + plural(payload.events.length, 'mișcare', 'mișcări') + ').');
+    });
+  }
+  function syncIn(files) {
+    var have = new Set(S.byId.keys()), fresh = [], dup = 0, bad = 0, badFiles = [], newWh = 0, newLoc = 0;
+    var haveLoc = {}; S.locs.forEach(function (l) { haveLoc[C.lkey(l.wh, l.loc)] = 1; });
+    var chain = Promise.resolve();
+    Array.prototype.forEach.call(files, function (f) {
+      chain = chain.then(function () { return readBuf(f); }).then(function (buf) {
+        var data;
+        try { data = JSON.parse(decodeText(buf)); } catch (e) { data = null; }
+        if (!data || data.app !== 'stoc-paleti' || !Array.isArray(data.events)) { badFiles.push(f.name); return; }
+        var m = C.mergeEvents(have, data.events);
+        m.fresh.forEach(function (e) { have.add(e.id); fresh.push(e); });
+        dup += m.dup; bad += m.bad;
+        (data.warehouses || []).forEach(function (w) { if (typeof w === 'string' && w && cfg.warehouses.indexOf(w) < 0) { cfg.warehouses.push(w); newWh++; } });
+        (data.dests || []).forEach(function (d) { if (typeof d === 'string' && d && cfg.dests.indexOf(d) < 0) cfg.dests.push(d); });
+        (data.locs || []).forEach(function (l) { if (l && l.wh && l.loc && !haveLoc[C.lkey(l.wh, l.loc)]) { haveLoc[C.lkey(l.wh, l.loc)] = 1; S.locs.push({ wh: l.wh, loc: l.loc }); newLoc++; } });
+      });
+    });
+    chain.then(function () { return fresh.length ? Store.put(fresh) : null; })
+      .then(function () { return Promise.all([saveCfg(), Store.setMeta('locs', S.locs)]); })
+      .then(function () {
+        fresh.forEach(function (e) { S.events.push(e); });
+        rebuild(); notifyTabs(); renderTab();
+        openDlg('<h2>Date încărcate</h2><p><b>' + plural(fresh.length, 'mișcare nouă', 'mișcări noi') + '</b> adăugate. ' + dup + ' existau deja și au fost sărite.' + (bad ? ' ' + bad + ' înregistrări invalide au fost ignorate.' : '') + '</p>' +
+          (newWh ? '<p>' + plural(newWh, 'depozit nou adăugat', 'depozite noi adăugate') + ' în listă.</p>' : '') +
+          (badFiles.length ? '<p class="st-err">Fișiere nerecunoscute: ' + badFiles.map(esc).join(', ') + '. Alege fișierele salvate cu „Salvează fișierul de transfer".</p>' : '') +
+          '<div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>');
+      }).catch(function (e) { toast('Încărcarea a eșuat: ' + (e.message || e)); });
+  }
+
+  /* ================= detalii palet ================= */
+  var pd = null;
+  function palletDlg(p, keepForm) {
+    var cur = S.st.stock.get(p), hist = S.events.filter(function (e) { return e.p === p; }).reverse(), g = cur && cur.gs1;
+    if (!g) hist.some(function (e) { if (e.gs1) { g = e.gs1; return true; } return false; });
+    if (!keepForm || !pd || pd.p !== p) pd = { p: p, form: false, wh: cur ? cur.wh : cfg.wh, loc: '', q: null };
+    var h = '<h2>Palet</h2><div class="info"><div class="big-code">' + esc(p) + '</div>' +
+      (cur ? '<span class="pill big occ">În stoc</span><p style="margin-top:8px"><b>' + esc(cur.wh) + ' / ' + esc(cur.loc || 'fără locație') + '</b> · intrat la ' + C.fmtDT(cur.inTs) + '</p>' : '<span class="pill big conf">Nu este în stoc</span>') +
+      (g ? '<p class="muted">' + [g.gtin && 'GTIN ' + esc(g.gtin), g.lot && 'lot ' + esc(g.lot), g.exp && 'expiră ' + esc(g.exp), g.prod && 'produs ' + esc(g.prod), g.qty && 'cantitate ' + esc(g.qty)].filter(Boolean).join(' · ') + '</p>' : '') + '</div>';
+    if (pd.form) {
+      h += '<div class="card" style="margin-top:10px"><h3>' + (cur ? 'Mută paletul' : 'Înregistrează paletul în stoc') + '</h3>' +
+        '<label class="fld"><span>Depozit</span><select class="inp" id="pdWh">' + whOpts(pd.wh) + '</select></label>' +
+        '<label class="fld"><span>Locație</span><input class="inp code" id="pdLoc" data-focus type="text" value="' + esc(pd.loc) + '" autocomplete="off" autocapitalize="characters" placeholder="scanează sau tastează locația"></label>' +
+        (pd.q ? '<div class="note"><span>' + pd.q.map(esc).join('<br>') + '</span></div>' : '') +
+        (pd.msg ? '<p class="st-warn">' + esc(pd.msg) + '</p>' : '') +
+        '<div class="btns"><button type="button" class="btn pri" data-act="pd-save">' + (pd.q ? 'Confirmă și salvează' : 'Salvează') + '</button><button type="button" class="btn" data-act="pd-form">Renunță</button></div></div>';
+    } else {
+      h += '<div class="btns" style="margin-top:10px"><button type="button" class="btn" data-act="pd-form">' + (cur ? 'Mută pe altă locație' : 'Înregistrează în stoc') + '</button>' + (cur ? '<button type="button" class="btn danger" data-act="pd-out">Scoate din stoc</button>' : '') + '</div>';
+    }
+    h += '<div class="sec-h">Istoric</div><div class="tw"><table><tbody>';
+    hist.slice(0, 60).forEach(function (e) {
+      var v = S.st.voided.has(e.id);
+      h += '<tr' + (v ? ' class="void"' : '') + '><td class="nowrap">' + C.fmtDT(e.ts) + '</td><td>' + pill(e.type) + '</td><td class="sx">' + esc(e.wh || '') + (e.loc ? ' / ' + esc(e.loc) : '') + '</td><td class="hide-sm">' + esc(C.evDetail(e, S.byId)) + (v ? ' (anulată)' : '') + '</td></tr>';
+    });
+    if (!hist.length) h += '<tr><td class="empty">Nicio mișcare pentru acest palet.</td></tr>';
+    h += '</tbody></table></div><div class="foot"><button type="button" class="btn" data-act="dlg-x">Închide</button></div>';
+    openDlg(h, false, function () { pd = null; });
+  }
+  function pdSave() {
+    var wh = $('pdWh').value, loc = C.normLoc($('pdLoc').value);
+    pd.msg = '';
+    if (!wh || !loc) { pd.wh = wh; pd.loc = loc; pd.msg = 'Completează depozitul și locația.'; pd.q = null; palletDlg(pd.p, true); return; }
+    var plan = C.planPlace(S.st, wh, pd.p, loc, 'MOVE'), key = wh + '|' + loc;
+    if (plan.status === 'noop') { pd.wh = wh; pd.loc = loc; pd.msg = plan.msg; pd.q = null; palletDlg(pd.p, true); return; }
+    if (plan.status === 'confirm' && pd.qKey !== key) { pd.wh = wh; pd.loc = loc; pd.q = plan.questions; pd.qKey = key; palletDlg(pd.p, true); return; }
+    var p = pd.p;
+    addEvents(plan.events, 'manual').then(function () { renderTab(); palletDlg(p); toast('Salvat.'); });
+  }
+  function pdOut() {
+    var p = pd.p;
+    ask('Scoți paletul din stoc?', 'Paletul ' + p + ' va fi înregistrat ca ieșire către ' + (cfg.dest || '—') + '. Poți anula mișcarea ulterior din Mișcări.', 'Scoate din stoc', true).then(function (yes) {
+      if (!yes) { palletDlg(p); return; }
+      var plan = C.planOut(S.st, cfg.wh, p, cfg.dest);
+      if (!plan.events) { toast(plan.msg); return; }
+      addEvents(plan.events, 'manual').then(function () { renderTab(); palletDlg(p); });
+    });
+  }
+
+  /* ================= alegerea depozitului, configurare ================= */
+  function whDlg(first) {
+    var h = '<h2>' + (first ? 'Configurare dispozitiv' : 'Depozit activ') + '</h2>';
+    if (first) h += '<label class="fld"><span>Numele acestui dispozitiv</span><input class="inp" id="setupName" type="text" value="' + esc(cfg.devName) + '" placeholder="ex. Scanner Orkla, PC birou" autocomplete="off"></label><p class="muted">Numele apare pe fiecare mișcare, ca să știi de pe ce dispozitiv a fost făcută.</p>';
+    h += '<p>' + (first ? 'În ce depozit lucrează acest dispozitiv?' : 'Scanările se înregistrează în depozitul ales.') + '</p><div class="whpick">';
+    cfg.warehouses.forEach(function (w, i) { h += '<button type="button" data-act="wh-set" data-w="' + esc(w) + '" data-i="' + Math.min(i, 3) + '">' + esc(w) + (w === cfg.wh ? '<small>activ acum</small>' : '') + '</button>'; });
+    h += '</div><p class="muted">Poți schimba oricând depozitul din butonul din stânga sus.</p>';
+    openDlg(h);
+  }
+  function destDlg() {
+    var h = '<h2>Destinația ieșirilor</h2><div class="whpick">';
+    cfg.dests.forEach(function (d) { h += '<button type="button" data-act="dest-set" data-d="' + esc(d) + '">' + esc(d) + (d === cfg.dest ? '<small>aleasă acum</small>' : '') + '</button>'; });
+    openDlg(h + '</div>');
+  }
+
+  /* ================= setări ================= */
+  function renderSettings() {
+    var used = {};
+    S.events.forEach(function (e) { if (e.wh) used[e.wh] = 1; if (e.fromWh) used[e.fromWh] = 1; });
+    var h = '<div class="cards">' +
+      '<div class="card"><h2>Acest dispozitiv</h2><label class="fld"><span>Nume</span><input class="inp" id="setName" data-s="devName" type="text" value="' + esc(cfg.devName) + '" placeholder="ex. Scanner Orkla" autocomplete="off"></label>' +
+      '<label class="fld"><span>Depozit activ</span><select class="inp" id="setWh" data-s="wh">' + whOpts(cfg.wh, cfg.wh ? null : 'alege') + '</select></label>' +
+      '<p class="muted">Cod dispozitiv: ' + esc(cfg.devId) + ' · versiunea ' + VERSION + '</p>' +
+      '<p class="' + (Store.mem ? 'st-err' : 'muted') + '">' + (Store.mem ? 'Browserul nu permite salvarea datelor. Tot ce introduci se pierde la închidere.' : 'Datele stau pe acest dispozitiv' + (ui.persisted === true ? ', în stocare protejată.' : ui.persisted === false ? '. Browserul nu a acordat stocare protejată: salvează des fișierul de transfer.' : '.')) + '</p></div>' +
+
+      '<div class="card"><h2>Scanare</h2>' +
+      '<label class="chk"><input type="checkbox" id="setSound" data-s="sound"' + (cfg.sound ? ' checked' : '') + '>Sunet la fiecare scanare</label>' +
+      '<label class="chk"><input type="checkbox" id="setVib" data-s="vibrate"' + (cfg.vibrate ? ' checked' : '') + '>Vibrație</label>' +
+      '<label class="chk"><input type="checkbox" id="setAuto" data-s="auto"' + (cfg.auto ? ' checked' : '') + '>Confirmă singur codul scanat, fără Enter</label>' +
+      '<p class="muted">Lasă ultima opțiune bifată dacă scannerul nu trimite Enter după cod. Codurile tastate de mână se confirmă mereu cu OK.</p>' +
+      '<div class="btns"><button type="button" class="btn sm" data-act="test-sound" data-k="ok">Test sunet reușit</button><button type="button" class="btn sm" data-act="test-sound" data-k="bad">Test sunet eroare</button></div></div>' +
+
+      '<div class="card"><h2>Depozite</h2><ul class="list">' + cfg.warehouses.map(function (w) {
+        return '<li><span>' + esc(w) + '</span>' + (used[w] || w === cfg.wh ? '<span class="muted">' + (w === cfg.wh ? 'activ' : 'are mișcări') + '</span>' : '<button type="button" class="btn sm" data-act="wh-del" data-w="' + esc(w) + '">Șterge</button>') + '</li>';
+      }).join('') + '</ul><div class="addrow"><input class="inp" id="newWh" type="text" placeholder="nume depozit nou" autocomplete="off"><button type="button" class="btn" data-act="wh-add">Adaugă</button></div></div>' +
+
+      '<div class="card"><h2>Destinații pentru ieșiri</h2><ul class="list">' + cfg.dests.map(function (d) {
+        return '<li><label class="chk" style="padding:0;min-height:32px"><input type="radio" name="destDef" data-s="dest" value="' + esc(d) + '"' + (d === cfg.dest ? ' checked' : '') + '>' + esc(d) + '</label>' + (cfg.dests.length > 1 && d !== cfg.dest ? '<button type="button" class="btn sm" data-act="dest-del" data-d="' + esc(d) + '">Șterge</button>' : '') + '</li>';
+      }).join('') + '</ul><div class="addrow"><input class="inp" id="newDest" type="text" placeholder="destinație nouă" autocomplete="off"><button type="button" class="btn" data-act="dest-add">Adaugă</button></div></div>' +
+
+      '<div class="card"><h2>Date</h2><p>' + plural(S.events.length, 'mișcare', 'mișcări') + ' în jurnal · ' + plural(S.st.stock.size, 'palet', 'paleți') + ' în stoc.</p><div class="btns">' +
+      (hasDemo() ? '<button type="button" class="btn" data-act="demo-del">Șterge datele demo</button>' : (S.events.length ? '' : '<button type="button" class="btn" data-act="demo-add">Încarcă date demo</button>')) +
+      '<button type="button" class="btn danger" data-act="wipe">Șterge toate datele de pe dispozitiv</button></div></div></div>';
+    $('tab-settings').innerHTML = h;
+  }
+
+  /* ================= date demonstrative ================= */
+  function sscc(n) {
+    var b = '3594000' + C.pad(100000000 + n, 10), sum = 0;
+    for (var i = 0; i < 17; i++) sum += (+b.charAt(i)) * (i % 2 === 0 ? 3 : 1);
+    return b + ((10 - sum % 10) % 10);
+  }
+  function demoAdd() {
+    var now = Date.now(), H = 3600000, evs = [], n = 0, locs = [];
+    var mk = function (o, ago) { o.id = 'demo-' + C.pad(++n, 4); o.ts = now - Math.round(ago * H) + n; o.src = 'demo'; o.dev = 'Demo'; evs.push(o); };
+    var r, c;
+    for (r = 1; r <= 4; r++) for (c = 1; c <= 5; c++) locs.push({ wh: 'Orkla', loc: 'A-' + C.pad(r) + '-' + C.pad(c), demo: true });
+    for (r = 1; r <= 3; r++) for (c = 1; c <= 5; c++) locs.push({ wh: 'Douglas', loc: 'D-' + C.pad(r) + '-' + C.pad(c), demo: true });
+    for (var i = 0; i < 15; i++) mk({ type: 'IN', p: sscc(i + 1), wh: 'Orkla', loc: locs[i].loc }, 70 - i * 3.1);
+    for (i = 0; i < 9; i++) mk({ type: 'IN', p: sscc(i + 41), wh: 'Douglas', loc: locs[20 + i].loc }, 52 - i * 4.3);
+    mk({ type: 'MOVE', p: sscc(3), wh: 'Orkla', loc: 'A-04-01', fromWh: 'Orkla', fromLoc: 'A-01-03' }, 20);
+    mk({ type: 'MOVE', p: sscc(44), wh: 'Douglas', loc: 'D-03-02', fromWh: 'Douglas', fromLoc: 'D-01-04' }, 9);
+    mk({ type: 'OUT', p: sscc(1), wh: 'Orkla', loc: 'A-01-01', dest: 'TC' }, 6);
+    mk({ type: 'OUT', p: sscc(2), wh: 'Orkla', loc: 'A-01-02', dest: 'TC' }, 5.9);
+    mk({ type: 'OUT', p: sscc(41), wh: 'Douglas', loc: 'D-01-01', dest: 'TC' }, 3);
+    mk({ type: 'IN', p: sscc(16), wh: 'Orkla', loc: 'A-01-01' }, 1.5);
+    mk({ type: 'IN', p: sscc(50), wh: 'Douglas', loc: 'D-01-01' }, 0.6);
+    cfg.warehouses.indexOf('Orkla') < 0 && cfg.warehouses.push('Orkla');
+    cfg.warehouses.indexOf('Douglas') < 0 && cfg.warehouses.push('Douglas');
+    S.locs = S.locs.concat(locs);
+    return Store.put(evs).then(function () { return Store.setMeta('locs', S.locs); }).then(function () {
+      evs.forEach(function (e) { S.events.push(e); });
+      rebuild(); saveCfg();
+    });
+  }
+  function demoDel() {
+    var ids = {}, pal = {}, del = [];
+    S.events.forEach(function (e) { if (e.src === 'demo') { ids[e.id] = 1; pal[e.p] = 1; } });
+    S.events.forEach(function (e) { if (ids[e.id] || (e.p && pal[e.p]) || (e.ref && ids[e.ref])) del.push(e.id); });
+    var dset = {}; del.forEach(function (i) { dset[i] = 1; });
+    S.events = S.events.filter(function (e) { return !dset[e.id]; });
+    S.locs = S.locs.filter(function (l) { return !l.demo; });
+    ui.slots = null; ui.pending = null; ui.result = null;
+    return Store.del(del).then(function () { return Store.setMeta('locs', S.locs); }).then(function () { rebuild(); notifyTabs(); renderTab(); toast('Datele demo au fost șterse.'); });
+  }
+
+  /* ================= acțiuni ================= */
+  var A = {
+    'dlg-x': function () { closeDlg(); },
+    'ask-yes': function () { var r = askResolve; askResolve = null; $('dlg').hidden = true; $('dlg').innerHTML = ''; dlgOnClose = null; if (r) r(true); },
+    'ask-no': function () { closeDlg(); },
+    'pick-wh': function () { whDlg(false); },
+    'wh-set': function (el) {
+      var n = $('setupName');
+      if (n) cfg.devName = n.value.trim();
+      cfg.wh = el.getAttribute('data-w'); cfg.setup = true;
+      ui.slots = null; ui.pending = null; ui.result = null;
+      saveCfg(); closeDlg(); renderTab();
+    },
+    'pick-dest': function () { destDlg(); },
+    'dest-set': function (el) { cfg.dest = el.getAttribute('data-d'); saveCfg(); closeDlg(); renderTab(); },
+    'kb': function () { cfg.kb = !cfg.kb; saveCfg(); renderScan(); inp.blur(); setTimeout(focusScan, 60); },
+    'scan-cancel': function () { ui.slots = null; ui.pending = null; ui.result = null; ui.note = ''; renderScan(); },
+    'pend-yes': function () { if (!ui.pending) return; var p = ui.pending.plan; ui.pending = null; scanQ = scanQ.then(function () { return commitPlan(p); }); },
+    'pend-no': function () { ui.pending = null; ui.slots = null; ui.note = ''; ui.result = { kind: 'warn', msg: 'Nu s-a înregistrat nimic.' }; renderScan(); },
+    'out-zero': function () { ui.outCount = 0; renderScan(); },
+    'undo': function () {
+      var x = ui.result; if (!x || x.kind !== 'ok') return;
+      var list = x.ids.map(function (i) { return S.byId.get(i); }).filter(function (e) { return e && !S.st.voided.has(e.id); });
+      ui.result = null;
+      voidEvents(list).then(function () { if (x.ev.type === 'OUT' && ui.outCount) ui.outCount--; ui.result = { kind: 'warn', msg: 'Mișcarea a fost anulată.' }; feedback('warn'); renderScan(); });
+    },
+    'pal': function (el) { palletDlg(el.getAttribute('data-p')); },
+    'pd-form': function () { if (!pd) return; pd.form = !pd.form; pd.q = null; pd.qKey = null; pd.msg = ''; palletDlg(pd.p, true); },
+    'pd-save': function () { if (pd) pdSave(); },
+    'pd-out': function () { if (pd) pdOut(); },
+    'flt': function () { ui.flt = !ui.flt; renderTab(); },
+    'sv': function (el) { fs.view = el.getAttribute('data-v'); fs.state = ''; fs.limit = 300; renderStock(); },
+    'more-stock': function () { fs.limit += 600; renderStockBody(); },
+    'more-moves': function () { fm.limit += 600; renderMovesBody(); },
+    'x-stock': function (el) {
+      var fmt = el.getAttribute('data-fmt');
+      if (fs.view === 'p') exportTable('stoc-paleti', [{ name: 'Stoc', aoa: C.stockAOA(filteredStock(), Date.now()) }], fmt);
+      else exportTable('locatii', [{ name: 'Locatii', aoa: C.locsAOA(filteredLocs()) }], fmt);
+    },
+    'x-moves': function (el) { exportTable('miscari', [{ name: 'Miscari', aoa: C.movesAOA(filteredMoves(), S.st, S.byId) }], el.getAttribute('data-fmt')); },
+    'x-all': function () {
+      exportTable('raport-stoc', [
+        { name: 'Stoc', aoa: C.stockAOA(C.stockList(S.st), Date.now()) },
+        { name: 'Miscari', aoa: C.movesAOA(S.events.slice().reverse(), S.st, S.byId) },
+        { name: 'Locatii', aoa: C.locsAOA(C.locationList(S.st)) }], 'xlsx');
+    },
+    'tpl': function () { exportTable('sablon-import-miscari', [{ name: 'Miscari', aoa: C.templateAOA() }], 'xlsx'); },
+    'void': function (el) {
+      var e = S.byId.get(el.getAttribute('data-id')); if (!e) return;
+      var grp = groupOf(e);
+      ask('Anulezi mișcarea?', C.TYPE_LABEL[e.type] + ' · palet ' + e.p + ' · ' + C.fmtDT(e.ts) + (grp.length > 1 ? ' (împreună cu ' + (grp.length - 1) + ' mișcare legată)' : '') + '. Stocul se recalculează ca și cum mișcarea nu ar fi existat. Anularea rămâne vizibilă în jurnal.', 'Anulează mișcarea', true)
+        .then(function (yes) { if (yes) voidEvents(grp).then(function () { renderTab(); toast('Mișcare anulată.'); }); });
+    },
+    'pick-file': function (el) { var f = $(el.getAttribute('data-for')); if (f) { f.value = ''; f.click(); } },
+    'imp-go': function () {
+      if (!imp) return;
+      var specs = [];
+      imp.res.items.forEach(function (it) { if (it.status === 'ok' || it.status === 'warn') specs = specs.concat(it.specs); });
+      var n = specs.length;
+      addEvents(specs, 'import', false).then(function () { closeDlg(); renderTab(); toast('Import terminat: ' + plural(n, 'mișcare adăugată', 'mișcări adăugate') + '.'); })
+        .catch(function (e) { toast('Importul a eșuat: ' + (e.message || e)); });
+    },
+    'sync-out': function () { syncOut(); },
+    'wh-add': function () {
+      var v = $('newWh').value.trim();
+      if (!v) return;
+      if (cfg.warehouses.some(function (w) { return C.fold(w) === C.fold(v); })) { toast('Depozitul există deja.'); return; }
+      cfg.warehouses.push(v); saveCfg(); renderTab();
+    },
+    'wh-del': function (el) { var w = el.getAttribute('data-w'); cfg.warehouses = cfg.warehouses.filter(function (x) { return x !== w; }); saveCfg(); renderTab(); },
+    'dest-add': function () {
+      var v = $('newDest').value.trim();
+      if (!v || cfg.dests.indexOf(v) >= 0) return;
+      cfg.dests.push(v); saveCfg(); renderTab();
+    },
+    'dest-del': function (el) { var d = el.getAttribute('data-d'); cfg.dests = cfg.dests.filter(function (x) { return x !== d; }); saveCfg(); renderTab(); },
+    'test-sound': function (el) { feedback(el.getAttribute('data-k')); },
+    'demo-add': function () { demoAdd().then(function () { if (!cfg.wh) { cfg.wh = 'Orkla'; cfg.setup = true; saveCfg(); } notifyTabs(); renderTab(); toast('Date demo încărcate.'); }); },
+    'demo-del': function () { demoDel(); },
+    'wipe': function () {
+      openDlg('<h2>Ștergi toate datele?</h2><p>Se șterg definitiv toate mișcările, stocul și setările de pe <b>acest dispozitiv</b>. Datele de pe celelalte dispozitive nu sunt atinse. Salvează întâi fișierul de transfer dacă vrei o copie.</p><label class="fld"><span>Scrie STERGE ca să confirmi</span><input class="inp" id="wipeTxt" data-focus type="text" autocomplete="off" autocapitalize="characters"></label><div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button><button type="button" class="btn pri danger" data-act="wipe-go">Șterge tot</button></div>');
+    },
+    'wipe-go': function () {
+      if (($('wipeTxt').value || '').trim().toUpperCase() !== 'STERGE') { toast('Scrie STERGE în câmp ca să confirmi.'); return; }
+      Store.clear().then(function () {
+        var id = cfg.devId; cfg = defaults(); cfg.devId = id;
+        S.events = []; S.locs = []; ui.slots = null; ui.pending = null; ui.result = null; ui.outCount = 0;
+        rebuild(); saveCfg(); notifyTabs(); closeDlg(); showTab('scan'); whDlg(true);
+      });
+    }
+  };
+
+  function bind() {
+    document.addEventListener('click', function (ev) {
+      var t = ev.target, el = t.closest ? t.closest('[data-act],[data-tab],[data-mode]') : null;
+      if (el) {
+        if (el.hasAttribute('data-act')) { var f = A[el.getAttribute('data-act')]; if (f) f(el, ev); }
+        else if (el.hasAttribute('data-tab')) showTab(el.getAttribute('data-tab'));
+        else if (el.hasAttribute('data-mode')) {
+          ui.mode = cfg.mode = el.getAttribute('data-mode'); ui.slots = null; ui.pending = null; ui.result = null; ui.note = '';
+          saveCfg(); renderScan();
+        }
+      }
+      setTimeout(focusScan, 0);
+    });
+    $('scanForm').addEventListener('submit', function (ev) { ev.preventDefault(); submitScan(); });
+    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Tab' && inp.value) { ev.preventDefault(); submitScan(); } });
+    inp.addEventListener('input', function () {
+      var now = Date.now(), len = inp.value.length, delta = len - burst.len, dt = now - burst.last;
+      clearTimeout(burst.timer);
+      if (/[\r\n]/.test(inp.value)) { submitScan(); return; }
+      if (len === 0) burst.fast = 0;
+      else if (delta >= 3) burst.fast = 99;            // cod venit dintr-o bucată (scanner sau lipire)
+      else if (delta >= 1 && dt < 50) burst.fast += delta; // caractere foarte rapide = scanner
+      else if (delta >= 1) burst.fast = 0;
+      burst.len = len; burst.last = now;
+      if (cfg.auto && burst.fast >= 4 && len >= 3) burst.timer = setTimeout(submitScan, 260);
+    });
+    inp.addEventListener('blur', function () { setTimeout(focusScan, 150); });
+    document.addEventListener('keydown', function (ev) {
+      if (ui.tab !== 'scan' || !$('dlg').hidden) return;
+      var a = document.activeElement;
+      if (a === inp || (a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))) return;
+      if (ev.key && (ev.key.length === 1 || ev.key === 'Unidentified') && !ev.ctrlKey && !ev.metaKey && !ev.altKey) focusScan();
+    });
+    window.addEventListener('focus', focusScan);
+    var wasNarrow = narrow(), rz = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(rz);
+      rz = setTimeout(function () { if (narrow() !== wasNarrow) { wasNarrow = narrow(); if (ui.tab === 'stock') renderStockBody(); else if (ui.tab === 'moves') renderMovesBody(); } }, 200);
+    });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { renderChrome(); focusScan(); } });
+
+    var filt = function (ev) {
+      var el = ev.target, f = el.getAttribute && el.getAttribute('data-f'), s = el.getAttribute && el.getAttribute('data-s');
+      if (f) {
+        var parts = f.split('.'), o = parts[0] === 'fs' ? fs : fm;
+        o[parts[1]] = el.value; o.limit = 300;
+        if (parts[0] === 'fs') renderStockBody(); else renderMovesBody();
+      } else if (s) {
+        if (el.type === 'checkbox') cfg[s] = el.checked;
+        else if (el.type === 'radio') { if (el.checked) cfg[s] = el.value; }
+        else cfg[s] = s === 'devName' ? el.value.trim() : el.value;
+        if (s === 'wh') { cfg.setup = true; ui.slots = null; ui.pending = null; ui.result = null; }
+        saveCfg(); renderChrome();
+        if (ev.type === 'change' && (s === 'wh' || s === 'dest')) renderSettings();
+      } else if (el.id === 'impOnlyBad' && imp) { imp.onlyBad = el.checked; importPreview(); }
+    };
+    document.addEventListener('input', filt);
+    document.addEventListener('change', function (ev) {
+      var el = ev.target;
+      if (el.type === 'file') {
+        if (!el.files || !el.files.length) return;
+        if (el.id === 'impFile') startImport(el.files[0]);
+        else if (el.id === 'locFile') startLocImport(el.files[0]);
+        else if (el.id === 'syncFile') syncIn(el.files);
+        return;
+      }
+      if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio' || el.type === 'date') filt(ev);
+    });
+    $('dlg').addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target.id === 'pdLoc') { ev.preventDefault(); pdSave(); } });
+  }
+
+  /* ================= pornire ================= */
+  function registerSW() {
+    if (BUILD !== 'pwa' || !('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      var offer = function (w) { toast('Există o versiune nouă a aplicației.', 'Actualizează', function () { w.postMessage('skipWaiting'); }, 60000); };
+      if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+      reg.addEventListener('updatefound', function () {
+        var w = reg.installing; if (!w) return;
+        w.addEventListener('statechange', function () { if (w.state === 'installed' && navigator.serviceWorker.controller) offer(w); });
+      });
+    }).catch(function () { });
+    var hadCtrl = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadCtrl && !reloaded) { reloaded = true; location.reload(); } });
+  }
+  Store.open().then(loadAll).then(function () {
+    try {
+      bc = new BroadcastChannel('stoc-paleti');
+      bc.onmessage = function () { loadAll().then(function () { if ($('dlg').hidden) renderTab(); else renderChrome(); }); };
+    } catch (e) { bc = null; }
+    bind();
+    var first = !cfg.setup, seed = Promise.resolve();
+    if (BUILD === 'artifact' && first && !S.events.length) {
+      cfg.devName = 'PC previzualizare'; cfg.wh = 'Orkla'; cfg.setup = true; first = false;
+      seed = demoAdd();
+    }
+    return seed.then(function () {
+      showTab(window.innerWidth >= 900 ? 'stock' : 'scan');
+      if (first) whDlg(true);
+      saveCfg();
+      try {
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(function (v) { ui.persisted = v; if (ui.tab === 'settings') renderSettings(); });
+      } catch (e) { }
+      registerSW();
+    });
+  }).catch(function (e) {
+    document.body.insertAdjacentHTML('afterbegin', '<p style="padding:16px">Aplicația nu a putut porni: ' + esc(e && e.message || e) + '</p>');
+  });
+})();
+
+</script>
+</body>
+</html>
