@@ -17,5 +17,15 @@ service cloud.firestore {
       allow read, create, update: if request.auth != null;
       allow delete: if false;
     }
+
+    // Comenzi de picking (create de pe PC, bifate de pe scannere) și lista dispozitivelor conectate.
+    match /orders/{doc} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
+    match /devices/{doc} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
   }
 }

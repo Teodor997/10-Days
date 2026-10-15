@@ -1,5 +1,5 @@
 /* Stoc Paleți — face aplicația disponibilă fără internet. La fiecare versiune nouă se schimbă numele de mai jos. */
-var CACHE = 'stoc-paleti-v1.1.1';
+var CACHE = 'stoc-paleti-v1.2.0';
 var FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'vendor/xlsx.full.min.js',
   'vendor/firebase-app-compat.js', 'vendor/firebase-auth-compat.js', 'vendor/firebase-firestore-compat.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];

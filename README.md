@@ -1,4 +1,4 @@
-# 10-Days — versiunea 1.1.1
+# 10-Days — versiunea 1.2.0
 
 Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Scanarea merge mereu, cu sau fără internet. Cât timp fișierul `config.js` nu conține o configurație Firebase, aplicația lucrează doar local și datele se adună prin fișiere de transfer. Cu Firebase configurat, mișcările ajung în timp real pe toate dispozitivele conectate (secțiunea 9).
 
@@ -13,6 +13,7 @@ Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scan
 | `config.js` | configurația instalării: aici se pune configurația Firebase |
 | `firestore.rules` | regulile de acces care se lipesc în consola Firebase |
 | `sablon-import-miscari.xlsx` | model pentru importul de mișcări și de stoc inițial |
+| `sablon-comanda.xlsx` | model pentru încărcarea unei comenzi de picking |
 
 ## 1. Publicare (o singură dată)
 
@@ -58,12 +59,44 @@ Depozitul activ este afișat permanent în bara de sus (Orkla și Douglas au cul
 
 Reguli aplicate:
 
-- Un singur palet pe locație. Dacă locația e deja ocupată, aplicația întreabă. Dacă operatorul confirmă, paletul vechi rămâne în stoc „fără locație" și apare separat în raport, ca să fie căutat.
+- Pe etaje: un singur palet pe locație. Dacă locația e deja ocupată, aplicația întreabă. Dacă operatorul confirmă, paletul vechi rămâne în stoc „fără locație" și apare separat în raport, ca să fie căutat.
+- Pe parter (vezi secțiunea 4a): mai mulți paleți pe locație, cu confirmare prin scanare.
 - Locațiile necunoscute nu sunt blocate: orice cod scanat ca locație este acceptat.
 - Etichetele de palet: SSCC simplu (18 cifre), SSCC cu prefix `00`, GS1-128 cu mai multe câmpuri (se rețin și lotul, data de expirare, cantitatea, dacă există) sau orice altă etichetă internă. Nimic nu este respins.
 - Situațiile neobișnuite cer confirmare pe ecran, cu sunet diferit: palet deja în stoc, palet care nu figurează în stoc, palet din celălalt depozit. O ieșire scanată a doua oară este semnalată ca eroare.
 - Fiecare mișcare are data, ora și numele dispozitivului. Nu există utilizatori.
 - Corecții: butonul „Anulează" de lângă ultima scanare sau, pentru orice mișcare mai veche, din pagina Mișcări. Mișcarea anulată rămâne vizibilă în jurnal, tăiată.
+
+## 4a. Locațiile de parter
+
+Parterul se recunoaște după terminația codului de locație, setată în Setări → „Locații de parter": Orkla `-0` (ex. `A1-37-01-0`), Douglas `1` (ex. `G1H001A1`). Setarea este comună tuturor dispozitivelor.
+
+Pe o locație de parter pot sta mai mulți paleți. Când se adaugă un palet (intrare sau mutare) pe o locație care are deja paleți:
+
+1. Aplicația afișează paleții care figurează acolo și cere scanarea fiecăruia.
+2. Pentru un palet care nu se găsește fizic se apasă **Lipsă**: paletul este mutat pe locația **Lost** (rămâne în stoc, apare în Stoc cu filtrul „Doar Lost" și ca indicator).
+3. După ce toți paleții sunt confirmați sau marcați lipsă, paletul nou este înregistrat. Până atunci nu se salvează nimic; **Renunță** anulează tot.
+
+La ieșire sau la mutarea unui palet de pe parter nu se cere confirmare. Mutările făcute manual de pe PC (Detalii palet → Mută) nu cer confirmare prin scanare. Un palet de pe Lost se readuce în stoc scanându-l la Intrare pe locația unde a fost găsit.
+
+## 4b. Comenzi de picking (doar online)
+
+Pe PC, pagina **Comenzi**:
+
+1. Încarcă un Excel/CSV cu coloanele `Comanda`, `SSCC`, `Destinatie` (șablonul `sablon-comanda.xlsx`). Numărul comenzii și destinația se pot scrie doar pe primul rând al comenzii; rândurile următoare le preiau. Fără coloana Comanda, numele fișierului devine numărul comenzii.
+2. Fiecare SSCC trebuie să fie în stoc (nu pe Lost). O comandă cu paleți lipsă este respinsă cu lista erorilor; celelalte comenzi din fișier se creează. Paleții din depozite diferite devin comenzi separate, cu același număr.
+3. **Alocă**: bifezi scannerele care văd comanda (mai multe, dacă vrei; progresul e comun). Nimic bifat = orice scanner din depozitul comenzii.
+4. **Detalii** arată fiecare palet cu starea lui, cine l-a preluat și când; se poate exporta în Excel. **Închide** scoate comanda de pe scannere (se poate redeschide).
+
+Pe scanner, pagina **Comenzi** arată comenzile deschise alocate lui (sau nealocate, din depozitul lui). Deschizi comanda și:
+
+- aplicația propune paletul următor în ordinea locațiilor; se poate scana orice palet din comandă, în orice ordine;
+- scanarea paletului înseamnă **ieșire imediată** către destinația comenzii;
+- un palet din afara comenzii este respins; scanarea unei locații spune ce paleți din comandă sunt acolo;
+- **Negăsit** marchează paletul; rămâne în stoc, iar comanda se poate termina fără el. Dacă e găsit ulterior, se scanează și devine preluat;
+- când toți paleții sunt preluați sau negăsiți, comanda apare „terminată" pe PC și dispare de pe scannere.
+
+Scanarea într-o comandă merge și fără semnal, dacă comanda a fost deja primită pe scanner; ieșirile pleacă la revenirea conexiunii, iar progresul de pe PC se actualizează atunci.
 
 ## 5. Pe PC
 
@@ -129,7 +162,7 @@ La o versiune nouă, înlocuiești fișierele din repository cu cele din pachetu
 
 1. Creează proiectul în consola Firebase: Firestore Database (locație `europe-west3`, „production mode") și Authentication cu metoda Email/Password.
 2. În Authentication → Users adaugă utilizatorul `depozit@stoc.local` cu o parolă. Parola este **codul de acces** al dispozitivelor. Pe scannerele cu tastatură numerică este mai comod un cod doar din cifre, de cel puțin 8 cifre.
-3. Firestore Database → Rules: șterge ce este acolo, lipește conținutul fișierului `firestore.rules` și apasă **Publish**.
+3. Firestore Database → Rules: șterge ce este acolo, lipește conținutul fișierului `firestore.rules` și apasă **Publish**. La versiunea 1.2.0 regulile trebuie republicate (au apărut colecțiile `orders` și `devices`).
 4. Pune configurația proiectului în `config.js` (în locul lui `null`) și încarcă fișierul în repository.
 5. Pe fiecare dispozitiv: deschide aplicația cu internet, introdu codul de acces. Rămâne conectat și după repornire.
 
@@ -141,7 +174,7 @@ Stocul inițial se importă o singură dată, de pe un singur dispozitiv conecta
 
 | | Estimat (600 de mișcări pe zi, 3 dispozitive) | Limita gratuită |
 |---|---|---|
-| Scrieri pe zi | cel mult 600 | 20.000 |
+| Scrieri pe zi | cel mult 600 (+ câteva pe comandă) | 20.000 |
 | Citiri pe zi | aproximativ 2.000 | 50.000 |
 | Stoc inițial de 3.000 de paleți | 12 scrieri (mișcările se grupează) | 20.000 |
 | Stocare | aproximativ 50 MB pe an | 1 GB |

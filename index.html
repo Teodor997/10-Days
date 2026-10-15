@@ -70,8 +70,8 @@ p{margin:0 0 8px}
 #topInfo{text-align:right;font-family:var(--f-ui);font-size:12px;line-height:1.25;opacity:.95;margin-left:10px;min-width:0}
 #topInfo .bad{background:var(--out);color:var(--on-solid);padding:1px 6px;border-radius:3px;font-weight:700}
 #main{grid-area:main;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;min-width:0}
-#nav{grid-area:nav;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav button{background:none;border:0;border-top:3px solid transparent;padding:5px 2px 6px;font-family:var(--f-ui);font-size:12px;color:var(--muted);position:relative;min-height:50px}
+#nav{grid-area:nav;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav button{background:none;border:0;border-top:3px solid transparent;padding:5px 1px 6px;font-family:var(--f-ui);font-size:11px;color:var(--muted);position:relative;min-height:50px}
 #nav svg{display:block;margin:0 auto 1px;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #nav button[aria-current="page"]{color:var(--ink);border-top-color:var(--ink);font-weight:700}
 #nav .dot{position:absolute;top:5px;left:50%;margin-left:9px;width:9px;height:9px;border-radius:50%;background:var(--out)}
@@ -95,7 +95,7 @@ p{margin:0 0 8px}
 #modes button[data-mode="MOVE"][aria-pressed="true"]{background:var(--move);border-color:var(--move);color:var(--on-solid)}
 #modes button[data-mode="CHECK"][aria-pressed="true"]{background:var(--check);border-color:var(--check);color:var(--on-solid)}
 #panel{border-radius:8px;color:var(--on-solid);padding:10px 12px 12px;background:var(--in);position:relative}
-#panel[data-mode="OUT"]{background:var(--out)} #panel[data-mode="MOVE"]{background:var(--move)} #panel[data-mode="CHECK"]{background:var(--check)}
+#panel[data-mode="OUT"],#panel[data-mode="PICK"]{background:var(--out)} #panel[data-mode="MOVE"]{background:var(--move)} #panel[data-mode="CHECK"]{background:var(--check)}
 #panelHead{font-family:var(--f-ui);font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.9;padding-right:70px}
 #ask{font-family:var(--f-ui);font-size:25px;font-weight:700;line-height:1.12;margin-top:6px}
 #slots{margin-top:8px}
@@ -257,6 +257,19 @@ td.act{text-align:right;white-space:nowrap}
 .sy::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:var(--dot-warn);vertical-align:baseline}
 .sy.ok::before{background:var(--dot-ok)} .sy.bad::before{background:var(--dot-bad)}
 
+/* ---- parter: confirmarea paleților; comenzi ---- */
+#nav .badge{position:absolute;top:4px;left:50%;margin-left:6px;min-width:16px;height:16px;border-radius:8px;background:var(--out);color:var(--on-solid);font-size:10px;font-weight:700;line-height:16px;padding:0 4px}
+@media (min-width:900px){#nav .badge{left:auto;right:12px;top:50%;margin:-8px 0 0}}
+.vhead{font-family:var(--f-ui);font-size:13px;opacity:.95;margin-bottom:4px}
+.slot .vrow{display:flex;align-items:center;justify-content:space-between;min-width:0}
+.slot.next .v.vrow{font-style:normal;opacity:1}
+.vrow .code{font-size:13px;white-space:normal;word-break:break-all}
+.slot .vb{background:var(--out);border:1px solid rgba(255,255,255,.6);color:var(--on-solid);border-radius:5px;font-family:var(--f-ui);font-weight:700;font-size:12px;padding:3px 9px;margin-left:8px;min-height:28px;flex:none}
+.rec.dim{opacity:.6}
+.orow{display:grid;grid-template-columns:auto minmax(0,1fr);grid-gap:2px 10px;align-items:baseline;width:100%;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--move);border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.orow b{font-family:var(--f-ui);font-size:17px}
+.orow .c{grid-column:1/-1;color:var(--muted);font-family:var(--f-ui);font-size:12.5px}
+
 </style>
 </head>
 <body>
@@ -269,6 +282,7 @@ td.act{text-align:right;white-space:nowrap}
     <button type="button" data-tab="scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6v12M8 6v12M11 6v12M15 6v12M18 6v12M20.5 6v12"/></svg>Scanare</button>
     <button type="button" data-tab="stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 20v-6h6v6M13 20v-6h6v6M9 14V8h6v6"/></svg>Stoc</button>
     <button type="button" data-tab="moves"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>Mișcări</button>
+    <button type="button" data-tab="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v15H5zM9 3v4M15 3v4M8 11l2 2 4-4M8 16h8"/></svg>Comenzi<span class="badge" id="ordBadge" hidden></span></button>
     <button type="button" data-tab="data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 18h14"/></svg>Date<span class="dot" id="dataDot" hidden></span></button>
     <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h12M20 17h0"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="18" cy="17" r="2"/></svg>Setări</button>
   </nav>
@@ -295,6 +309,7 @@ td.act{text-align:right;white-space:nowrap}
     </section>
     <section id="tab-stock" class="tab" hidden></section>
     <section id="tab-moves" class="tab" hidden></section>
+    <section id="tab-orders" class="tab" hidden></section>
     <section id="tab-data" class="tab" hidden></section>
     <section id="tab-settings" class="tab" hidden></section>
   </main>
@@ -312,7 +327,8 @@ td.act{text-align:right;white-space:nowrap}
   'use strict';
 
   var GS = '\x1d';
-  var TYPE_LABEL = { IN: 'Intrare', OUT: 'Ieșire', MOVE: 'Mutare', UNLOC: 'Fără locație', VOID: 'Anulare' };
+  var TYPE_LABEL = { IN: 'Intrare', OUT: 'Ieșire', MOVE: 'Mutare', UNLOC: 'Fără locație', VOID: 'Anulare', PICKMISS: 'Negăsit la comandă' };
+  var LOST = 'LOST';
   var SRC_LABEL = { scan: 'Scanare', manual: 'Manual', import: 'Import', demo: 'Demo' };
 
   /* ---------- utilitare ---------- */
@@ -460,7 +476,7 @@ td.act{text-align:right;white-space:nowrap}
   function noteLoc(st, wh, loc) { if (loc) { st.locNames.add(loc); st.locKeys.add(lkey(wh, loc)); } }
   function applyEvent(st, e) {
     if (e.ts > st.maxTs) st.maxTs = e.ts;
-    if (e.type === 'VOID' || !e.p) return;
+    if (e.type === 'VOID' || e.type === 'PICKMISS' || !e.p) return;
     var cur = st.stock.get(e.p);
     if (e.type === 'IN' || e.type === 'MOVE') {
       if (cur) { delLoc(st, cur.wh, cur.loc, e.p); cur.wh = e.wh; cur.loc = e.loc || ''; cur.lastTs = e.ts; cur.lastType = e.type; }
@@ -497,11 +513,24 @@ td.act{text-align:right;white-space:nowrap}
 
   /* ---------- regulile operațiunilor ---------- */
   function locTxt(wh, loc) { return wh + ' / ' + (loc || 'fără locație'); }
-  function planPlace(st, wh, pid, loc, mode) {
+  /* Locațiile de parter (mai mulți paleți pe locație) se recunosc după terminația codului, pe depozit: rules = { Orkla: '-0', Douglas: '1' }. */
+  function isGround(rules, wh, loc) {
+    var sfx = rules && rules[wh];
+    return !!(sfx && loc && loc !== LOST && loc.length > sfx.length && loc.slice(-sfx.length) === sfx);
+  }
+  function planPlace(st, wh, pid, loc, mode, ground) {
     var cur = st.stock.get(pid);
     if (cur && cur.wh === wh && cur.loc === loc) return { status: 'noop', msg: 'Paletul este deja pe locația ' + loc + '.' };
     var occ = occupants(st, wh, loc).filter(function (x) { return x !== pid; });
     var q = [], evs = [];
+    if (ground && occ.length) { // parter: paleții existenți se confirmă prin scanare, nu sunt dați la o parte
+      var evg = { type: cur ? 'MOVE' : 'IN', p: pid, wh: wh, loc: loc };
+      if (cur) { evg.fromWh = cur.wh; evg.fromLoc = cur.loc; }
+      if (mode === 'IN' && cur) q.push('Paletul figurează deja în stoc la ' + locTxt(cur.wh, cur.loc) + '. Îl muți la ' + locTxt(wh, loc) + '?');
+      if (mode === 'MOVE' && !cur) q.push('Paletul nu figurează în stoc. Îl înregistrezi ca intrare la ' + locTxt(wh, loc) + '?');
+      if (mode === 'MOVE' && cur && cur.wh !== wh) q.push('Paletul figurează în ' + cur.wh + '. Îl transferi în ' + locTxt(wh, loc) + '?');
+      return { status: 'verify', questions: q, events: [evg], occupants: occ, loc: loc, wh: wh };
+    }
     if (mode === 'IN' && cur) q.push('Paletul figurează deja în stoc la ' + locTxt(cur.wh, cur.loc) + '. Îl muți la ' + locTxt(wh, loc) + '?');
     if (mode === 'MOVE' && !cur) q.push('Paletul nu figurează în stoc. Îl înregistrezi ca intrare la ' + locTxt(wh, loc) + '?');
     if (mode === 'MOVE' && cur && cur.wh !== wh) q.push('Paletul figurează în ' + cur.wh + '. Îl transferi în ' + locTxt(wh, loc) + '?');
@@ -511,6 +540,12 @@ td.act{text-align:right;white-space:nowrap}
     if (cur) { ev.fromWh = cur.wh; ev.fromLoc = cur.loc; }
     evs.push(ev);
     return { status: q.length ? 'confirm' : 'ok', questions: q, events: evs };
+  }
+  /* După confirmare: lost = paleții marcați lipsă → merg pe locația LOST; apoi mișcarea paletului nou. */
+  function verifyEvents(plan, lost) {
+    var evs = [];
+    (lost || []).forEach(function (p) { evs.push({ type: 'MOVE', p: p, wh: plan.wh, loc: LOST, fromWh: plan.wh, fromLoc: plan.loc, note: 'Lipsă la confirmare pe ' + plan.loc }); });
+    return evs.concat(plan.events);
   }
   function planOut(st, wh, pid, dest) {
     var cur = st.stock.get(pid);
@@ -533,7 +568,7 @@ td.act{text-align:right;white-space:nowrap}
 
   /* Un pas de scanare. slots = {P:{id,cls,parsed}|null, L:string|null}.
      Întoarce {slots, out}, unde out.kind ∈ need | plan | error | info. */
-  function scanFlow(mode, slots, st, wh, dest, parsed) {
+  function scanFlow(mode, slots, st, wh, dest, parsed, groundFn) {
     var cls = classify(st, parsed);
     var P = slots && slots.P || null, L = slots && slots.L || null;
     var mk = function (c) { return { id: parsed.id, cls: c, parsed: parsed }; };
@@ -576,7 +611,7 @@ td.act{text-align:right;white-space:nowrap}
       else if (!P) P = mk('unknown');
       else L = parsed.loc;
       if (P && L) {
-        plan = planPlace(st, wh, P.id, L, 'IN');
+        plan = planPlace(st, wh, P.id, L, 'IN', groundFn && groundFn(wh, L));
         if (plan.status === 'noop') return { slots: null, out: { kind: 'error', soft: true, msg: plan.msg } };
         return { slots: { P: P, L: L }, out: { kind: 'plan', plan: attach(plan, P.parsed), pid: P.id } };
       }
@@ -594,7 +629,7 @@ td.act{text-align:right;white-space:nowrap}
         return { slots: { P: P, L: null }, out: { kind: 'need', what: 'location', msg: '' } };
       }
       if (cls === 'pallet') return { slots: { P: mk('pallet'), L: null }, out: { kind: 'need', what: 'location', warn: true, msg: 'Palet înlocuit. Scanează locația nouă.' } };
-      plan = planPlace(st, wh, P.id, parsed.loc, 'MOVE');
+      plan = planPlace(st, wh, P.id, parsed.loc, 'MOVE', groundFn && groundFn(wh, parsed.loc));
       if (plan.status === 'noop') return { slots: null, out: { kind: 'error', soft: true, msg: plan.msg } };
       return { slots: { P: P, L: parsed.loc }, out: { kind: 'plan', plan: attach(plan, P.parsed), pid: P.id } };
     }
@@ -669,7 +704,8 @@ td.act{text-align:right;white-space:nowrap}
     depozit: ['depozit', 'warehouse', 'wh', 'magazie', 'site'],
     locatie: ['locatie', 'location', 'loc', 'bin', 'storagebin', 'adresa', 'celula', 'pozitie', 'locatia'],
     data: ['data', 'dataora', 'date', 'datetime', 'timestamp', 'datamiscare', 'datasiora', 'dataintrare', 'dataintrarii'],
-    destinatie: ['destinatie', 'destination', 'dest', 'catre'],
+    destinatie: ['destinatie', 'destination', 'dest', 'catre', 'destinatar', 'client'],
+    comanda: ['comanda', 'nrcomanda', 'numarcomanda', 'comandanr', 'order', 'orderno', 'ordernumber', 'nrcmd', 'cmd'],
     obs: ['obs', 'observatii', 'note', 'nota', 'comentariu', 'remarks', 'observatie']
   };
   var TYPES = {
@@ -767,7 +803,7 @@ td.act{text-align:right;white-space:nowrap}
             if (!it.loc) warn('Fără locație.');
             if (type === 'IN' && cur) warn('Paletul e deja în stoc la ' + locTxt(cur.wh, cur.loc) + ' — se înregistrează ca mutare.');
             if (type === 'MOVE' && !cur) warn('Paletul nu figurează în stoc — se înregistrează ca intrare.');
-            occ = it.loc ? occupants(sim, wh, it.loc).filter(function (x) { return x !== it.p; }) : [];
+            occ = it.loc && !(opts.groundFn && opts.groundFn(wh, it.loc)) ? occupants(sim, wh, it.loc).filter(function (x) { return x !== it.p; }) : [];
             if (occ.length) warn('Locația e ocupată de ' + occ.join(', ') + ' — vor figura mai mulți paleți pe locație.');
             ev = { type: cur ? 'MOVE' : 'IN', p: it.p, wh: wh, loc: it.loc };
             if (cur) { ev.fromWh = cur.wh; ev.fromLoc = cur.loc; }
@@ -806,6 +842,120 @@ td.act{text-align:right;white-space:nowrap}
     }
     return { locs: out, bad: bad };
   }
+  /* ---------- comenzi de picking ---------- */
+  function orderTemplateAOA() {
+    return [
+      ['Comanda', 'SSCC', 'Destinatie'],
+      ['CMD-1001', '359400000000000017', 'TC'],
+      ['CMD-1001', '359400000000000024', 'TC'],
+      ['CMD-1002', '359400000000000031', 'Kaufland'],
+      ['', '', 'exemplu — șterge rândurile; Comanda și Destinatie pot lipsi (se completează la încărcare)']
+    ];
+  }
+  /* rows → comenzi gata de creat. Fiecare SSCC trebuie să fie în stoc (nu pe LOST); o comandă cu erori este respinsă întreagă.
+     opts: {defaultNo, defaultDest}. Rezultat: {orders:[{no, dest, wh, items:[{p, loc}], line}], rejected:[{no, errors:[...]}], error} */
+  function buildOrderImport(rows, opts, st) {
+    var hd = findHeader(rows, 'palet');
+    if (!hd) return { error: 'Nu găsesc coloana cu paleții. Antetul trebuie să conțină „SSCC" sau „Palet".' };
+    var cols = hd.cols, groups = {}, order = [], last = { no: '', dest: '' };
+    for (var r = hd.row + 1; r < rows.length; r++) {
+      var row = rows[r] || [], get = function (k) { return cols[k] != null ? row[cols[k]] : null; };
+      if (!row.some(function (x) { return cellText(x) !== ''; })) continue;
+      var no = cellText(get('comanda')) || last.no || opts.defaultNo || '', dest = cellText(get('destinatie')) || last.dest || opts.defaultDest || '';
+      if (cellText(get('comanda'))) last = { no: no, dest: cellText(get('destinatie')) || '' };
+      else if (cellText(get('destinatie'))) last.dest = dest;
+      var pc = palletFromCell(get('palet')), msg = '', p = '', loc = '', wh = '';
+      if (pc.err) msg = pc.err;
+      else if (!pc.parsed) msg = 'Lipsește codul paletului.';
+      else {
+        p = pc.parsed.id;
+        var cur = st.stock.get(p);
+        if (!cur) msg = 'Paletul ' + p + ' nu figurează în stoc.';
+        else if (cur.loc === LOST) msg = 'Paletul ' + p + ' figurează ca Lost.';
+        else { loc = cur.loc; wh = cur.wh; }
+      }
+      var key = no + '\u0001' + (wh || '?');
+      if (!groups[key]) { groups[key] = { no: no, dest: dest, wh: wh, items: [], errors: [], line: r + 1, seen: {} }; order.push(key); }
+      var g = groups[key];
+      if (msg) g.errors.push('Rândul ' + (r + 1) + ': ' + msg);
+      else if (g.seen[p]) g.errors.push('Rândul ' + (r + 1) + ': paletul ' + p + ' apare de două ori.');
+      else { g.seen[p] = 1; g.items.push({ p: p, loc: loc }); }
+      if (!g.dest && dest) g.dest = dest;
+    }
+    // paleții cu eroare au ajuns în grupul „?”; erorile lor se mută la comanda cu același număr
+    var out = [], rejected = [], byNo = {};
+    order.forEach(function (k) { var g = groups[k]; if (g.wh) { byNo[g.no] = byNo[g.no] || []; byNo[g.no].push(g); } });
+    order.forEach(function (k) {
+      var g = groups[k];
+      if (g.wh) return;
+      var tgt = byNo[g.no];
+      if (tgt && tgt.length) tgt.forEach(function (t) { t.errors = t.errors.concat(g.errors); });
+      else rejected.push({ no: g.no || '(fără număr)', errors: g.errors, line: g.line });
+    });
+    order.forEach(function (k) {
+      var g = groups[k];
+      if (!g.wh) return;
+      if (!g.no) g.errors.unshift('Lipsește numărul comenzii.');
+      if (g.errors.length) rejected.push({ no: g.no || '(fără număr)', errors: g.errors, line: g.line });
+      else out.push({ no: g.no, dest: g.dest, wh: g.wh, items: g.items.map(function (i) { return { p: i.p, loc: i.loc }; }), line: g.line });
+    });
+    if (!out.length && !rejected.length) return { error: 'Am găsit antetul, dar niciun rând cu paleți sub el.' };
+    rejected.sort(function (a, b) { return a.line - b.line; });
+    return { orders: out, rejected: rejected };
+  }
+  /* index: palet → mișcările OUT / PICKMISS nevoidate, pentru calculul progresului comenzilor */
+  function pickIndex(events, voided) {
+    var m = new Map();
+    for (var i = 0; i < events.length; i++) {
+      var e = events[i];
+      if ((e.type !== 'OUT' && e.type !== 'PICKMISS') || voided.has(e.id)) continue;
+      var a = m.get(e.p); if (!a) { a = []; m.set(e.p, a); }
+      a.push(e);
+    }
+    return m;
+  }
+  /* Starea fiecărui palet din comandă: pending | picked | missing. Ieșirea (de orice fel, după crearea comenzii) bate „negăsit”. */
+  function orderProgress(o, idx, st) {
+    var items = [], nP = 0, nM = 0;
+    (o.items || []).forEach(function (it) {
+      var cur = st.stock.get(it.p), evs = idx.get(it.p) || [], state = 'pending', ev = null;
+      for (var i = 0; i < evs.length; i++) {
+        var e = evs[i];
+        if (e.ts < (o.created || 0) - 60000) continue;
+        if (e.type === 'OUT') { state = 'picked'; ev = e; break; }
+        if (e.type === 'PICKMISS' && e.ord === o.id) { state = 'missing'; ev = e; }
+      }
+      if (state === 'picked') nP++; else if (state === 'missing') nM++;
+      items.push({ p: it.p, loc: cur ? cur.loc : (state === 'pending' ? '' : it.loc || ''), inStock: !!cur, state: state, ev: ev, plannedLoc: it.loc || '' });
+    });
+    items.sort(function (a, b) {
+      var ra = a.state === 'pending' ? 0 : 1, rb = b.state === 'pending' ? 0 : 1;
+      if (ra !== rb) return ra - rb;
+      var la = a.loc || a.plannedLoc, lb = b.loc || b.plannedLoc;
+      return la < lb ? -1 : la > lb ? 1 : a.p < b.p ? -1 : 1;
+    });
+    return { items: items, total: items.length, picked: nP, missing: nM, pending: items.length - nP - nM, done: items.length > 0 && nP + nM === items.length };
+  }
+  /* O scanare în modul comandă. Întoarce {kind:'pick', item} | {kind:'info', ...} | {kind:'error', msg}. */
+  function pickScan(o, prog, st, parsed) {
+    var it = null;
+    for (var i = 0; i < prog.items.length; i++) if (prog.items[i].p === parsed.id) { it = prog.items[i]; break; }
+    if (it) {
+      if (it.state === 'picked') return { kind: 'error', soft: true, msg: 'Paletul ' + it.p + ' a fost deja preluat.' };
+      var cur = st.stock.get(it.p);
+      if (!cur) return { kind: 'error', msg: 'Paletul ' + it.p + ' nu mai figurează în stoc.' };
+      return { kind: 'pick', item: it, cur: cur, event: { type: 'OUT', p: it.p, wh: cur.wh, loc: cur.loc, dest: o.dest || '', ord: o.id, ordNo: o.no } };
+    }
+    var occ = occupants(st, o.wh, parsed.loc);
+    if (occ.length) {
+      var here = prog.items.filter(function (x) { return occ.indexOf(x.p) >= 0 && x.state === 'pending'; });
+      if (here.length) return { kind: 'info', msg: 'Pe ' + parsed.loc + ' sunt ' + plural2(here.length, 'palet din comandă', 'paleți din comandă') + ': ' + here.map(function (x) { return x.p; }).join(', ') + '. Scanează eticheta paletului.' };
+      return { kind: 'error', msg: 'Pe locația ' + parsed.loc + ' nu este niciun palet din această comandă.' };
+    }
+    if (st.stock.has(parsed.id)) { var c2 = st.stock.get(parsed.id); return { kind: 'error', msg: 'Paletul ' + parsed.id + ' (' + locTxt(c2.wh, c2.loc) + ') nu face parte din comandă.' }; }
+    return { kind: 'error', msg: 'Codul ' + parsed.id + ' nu este nici palet din comandă, nici locație cu paleți din comandă.' };
+  }
+  function plural2(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
   function templateAOA() {
     return [
       ['Tip', 'Palet', 'Depozit', 'Locatie', 'Data', 'Destinatie', 'Observatii'],
@@ -818,7 +968,8 @@ td.act{text-align:right;white-space:nowrap}
   /* ---------- rapoarte ---------- */
   function evDetail(e, byId) {
     if (e.type === 'MOVE') return 'din ' + locTxt(e.fromWh || e.wh, e.fromLoc);
-    if (e.type === 'OUT') return (e.dest ? 'către ' + e.dest : '') + (e.loc ? (e.dest ? ', ' : '') + 'din ' + e.loc : '');
+    if (e.type === 'OUT') return (e.dest ? 'către ' + e.dest : '') + (e.loc ? (e.dest ? ', ' : '') + 'din ' + e.loc : '') + (e.ordNo ? ' · comanda ' + e.ordNo : '');
+    if (e.type === 'PICKMISS') return 'comanda ' + (e.ordNo || '') + (e.loc ? ', locația ' + e.loc : '');
     if (e.type === 'VOID') { var t = byId && byId.get(e.ref); return t ? 'anulează: ' + TYPE_LABEL[t.type] + ' ' + (t.p || '') + ' (' + fmtDT(t.ts) + ')' : 'anulează o mișcare'; }
     return '';
   }
@@ -827,11 +978,13 @@ td.act{text-align:right;white-space:nowrap}
     a.sort(function (x, y) { return x.wh < y.wh ? -1 : x.wh > y.wh ? 1 : x.loc < y.loc ? -1 : x.loc > y.loc ? 1 : x.p < y.p ? -1 : 1; });
     return a;
   }
-  function locationList(st) {
+  function locationList(st, groundFn) {
     var out = [];
     st.locKeys.forEach(function (k) {
       var parts = k.split('\u0001'), set = st.byLoc.get(k), ps = set ? Array.from(set) : [];
-      out.push({ wh: parts[0], loc: parts[1], pallets: ps, state: ps.length === 0 ? 'liberă' : ps.length === 1 ? 'ocupată' : 'conflict' });
+      if (parts[1] === LOST) return;
+      var g = groundFn ? groundFn(parts[0], parts[1]) : false;
+      out.push({ wh: parts[0], loc: parts[1], pallets: ps, ground: g, state: ps.length === 0 ? 'liberă' : (ps.length === 1 || g) ? 'ocupată' : 'conflict' });
     });
     out.sort(function (x, y) { return x.wh < y.wh ? -1 : x.wh > y.wh ? 1 : x.loc < y.loc ? -1 : x.loc > y.loc ? 1 : 0; });
     return out;
@@ -857,7 +1010,7 @@ td.act{text-align:right;white-space:nowrap}
   }
 
   /* ---------- transfer între dispozitive ---------- */
-  var EV_TYPES = { IN: 1, OUT: 1, MOVE: 1, UNLOC: 1, VOID: 1 };
+  var EV_TYPES = { IN: 1, OUT: 1, MOVE: 1, UNLOC: 1, VOID: 1, PICKMISS: 1 };
   function validEvent(e) {
     if (!e || typeof e.id !== 'string' || !e.id || typeof e.ts !== 'number' || !isFinite(e.ts) || !EV_TYPES[e.type]) return false;
     if (e.type === 'VOID') return typeof e.ref === 'string' && !!e.ref;
@@ -913,7 +1066,8 @@ td.act{text-align:right;white-space:nowrap}
   function makeId(dev, ts, n) { return dev + '-' + ts.toString(36) + '-' + (n || Math.floor(Math.random() * 1679616)).toString(36); }
 
   return {
-    GS: GS, TYPE_LABEL: TYPE_LABEL, SRC_LABEL: SRC_LABEL,
+    GS: GS, TYPE_LABEL: TYPE_LABEL, SRC_LABEL: SRC_LABEL, LOST: LOST,
+    isGround: isGround, verifyEvents: verifyEvents, orderTemplateAOA: orderTemplateAOA, buildOrderImport: buildOrderImport, pickIndex: pickIndex, orderProgress: orderProgress, pickScan: pickScan,
     pad: pad, fmtD: fmtD, fmtT: fmtT, fmtDT: fmtDT, stamp: stamp, lkey: lkey, fold: fold, normLoc: normLoc,
     parseGS1: parseGS1, parseScan: parseScan,
     sortEvents: sortEvents, computeState: computeState, applyEvent: applyEvent, occupants: occupants, classify: classify,
@@ -930,7 +1084,8 @@ td.act{text-align:right;white-space:nowrap}
 </script>
 <script>
 /* Stoc Paleți — legătura cu Firebase (Auth + Firestore). Tot ce atinge Firebase stă aici.
-   Colecții: log/{dispozitiv-zi-nr} = { d, u, ev:[mișcări] } · meta/config = { warehouses, dests } · meta/locs = { list:[{w,l}] } */
+   Colecții: log/{dispozitiv-zi-nr} = { d, u, ev:[mișcări] } · meta/config = { warehouses, dests, ground } · meta/locs = { list:[{w,l}] }
+              orders/{id} = { no, dest, wh, items:[{p,loc}], devs:[], status, created, by } · devices/{id} = { name, wh, kind, seen } */
 (function () {
   'use strict';
   window.StocFirebaseRemote = function (conf) {
@@ -966,13 +1121,14 @@ td.act{text-align:right;white-space:nowrap}
             cb(docs, snap.metadata.fromCache);
           }, err);
       },
-      /* p = { addWh, delWh, addDest, delDest, addLocs:[{w,l}] } */
+      /* p = { addWh, delWh, addDest, delDest, addLocs:[{w,l}], ground:{wh:suffix} } */
       metaPatch: function (p) {
         var jobs = [], add = {}, del = {}, hasAdd = false, hasDel = false;
         if (p.addWh && p.addWh.length) { add.warehouses = union(p.addWh); hasAdd = true; }
         if (p.addDest && p.addDest.length) { add.dests = union(p.addDest); hasAdd = true; }
         if (p.delWh && p.delWh.length) { del.warehouses = remove(p.delWh); hasDel = true; }
         if (p.delDest && p.delDest.length) { del.dests = remove(p.delDest); hasDel = true; }
+        if (p.ground) { add.ground = p.ground; hasAdd = true; }
         if (hasAdd) jobs.push(meta.doc('config').set(add, { merge: true }));
         if (hasDel) jobs.push(meta.doc('config').set(del, { merge: true }));
         if (p.addLocs && p.addLocs.length) {
@@ -986,10 +1142,38 @@ td.act{text-align:right;white-space:nowrap}
           var out = {};
           snap.forEach(function (doc) {
             var d = doc.data();
-            if (doc.id === 'config') { out.warehouses = d.warehouses || []; out.dests = d.dests || []; }
+            if (doc.id === 'config') { out.warehouses = d.warehouses || []; out.dests = d.dests || []; out.ground = d.ground || null; }
             else if (doc.id === 'locs') out.locs = d.list || [];
           });
           cb(out, snap.metadata.fromCache || snap.metadata.hasPendingWrites);
+        }, err);
+      },
+      /* comenzi de picking */
+      orderCreate: function (id, o) {
+        var d = {}; for (var k in o) if (o[k] !== undefined) d[k] = o[k];
+        d.u = FV.serverTimestamp();
+        return db.collection('orders').doc(id).set(d);
+      },
+      orderUpdate: function (id, patch) {
+        var d = {}; for (var k in patch) if (patch[k] !== undefined) d[k] = patch[k];
+        d.u = FV.serverTimestamp();
+        return db.collection('orders').doc(id).set(d, { merge: true });
+      },
+      /* wh = null: toate comenzile (PC); altfel doar cele deschise din depozit. cb(list, fromCache) */
+      listenOrders: function (wh, cb, err) {
+        var q = wh ? db.collection('orders').where('wh', '==', wh).where('status', '==', 'open') : db.collection('orders').orderBy('created', 'desc').limit(300);
+        return q.onSnapshot({ includeMetadataChanges: true }, function (snap) {
+          var list = [];
+          snap.forEach(function (doc) { var d = doc.data(); d.id = doc.id; d.u = ms(d.u); list.push(d); });
+          cb(list, snap.metadata.fromCache);
+        }, err);
+      },
+      deviceSet: function (id, d) { d.seen = FV.serverTimestamp(); return db.collection('devices').doc(id).set(d, { merge: true }); },
+      listenDevices: function (cb, err) {
+        return db.collection('devices').onSnapshot(function (snap) {
+          var list = [];
+          snap.forEach(function (doc) { var d = doc.data(); d.id = doc.id; d.seen = ms(d.seen); list.push(d); });
+          cb(list);
         }, err);
       }
     };
@@ -1002,7 +1186,7 @@ td.act{text-align:right;white-space:nowrap}
 (function () {
   'use strict';
   var C = window.StocCore;
-  var VERSION = '1.1.1', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var VERSION = '1.2.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
   var CONF = window.STOC_CONFIG || {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -1081,11 +1265,15 @@ td.act{text-align:right;white-space:nowrap}
   function rnd(n) { var s = ''; while (s.length < n) s += Math.floor(Math.random() * 36).toString(36); return s.toUpperCase(); }
   function defaults() {
     return { devId: rnd(4), devName: '', wh: '', warehouses: ['Orkla', 'Douglas'], dests: ['TC'], dest: 'TC', sound: true, vibrate: true, auto: true, kb: false, lastExport: 0, unsent: 0, dirtySince: 0, setup: false, mode: 'IN',
-      cursor: 0, bucket: null, metaAdd: { wh: [], dest: [] }, metaDel: { wh: [], dest: [] }, metaInit: false, syncAsked: false };
+      cursor: 0, bucket: null, metaAdd: { wh: [], dest: [] }, metaDel: { wh: [], dest: [] }, metaInit: false, syncAsked: false,
+      ground: { Orkla: '-0', Douglas: '1' }, groundDirty: false };
   }
   var cfg = defaults();
   var S = { events: [], st: C.computeState([], []), byId: new Map(), locs: [] };
-  var ui = { tab: 'scan', mode: 'IN', slots: null, pending: null, result: null, outCount: 0, persisted: null, note: '' };
+  var ui = { tab: 'scan', mode: 'IN', slots: null, pending: null, result: null, outCount: 0, persisted: null, note: '', verify: null, order: null };
+  var ord = { list: [], unsub: null, unsubDev: null, devs: [], idx: null, devSent: '' };
+  function groundFn(wh, loc) { return C.isGround(cfg.ground, wh, loc); }
+  function isPC() { return window.innerWidth >= 900; }
   var fs = { view: 'p', wh: '', q: '', state: '', limit: 300 };
   var fm = { from: '', to: '', type: '', wh: '', q: '', limit: 300 };
   var lastTs = 0, bc = null;
@@ -1097,14 +1285,17 @@ td.act{text-align:right;white-space:nowrap}
     S.byId = new Map();
     S.events.forEach(function (e) { S.byId.set(e.id, e); });
     S.st = C.computeState(S.events, S.locs);
+    ord.idx = null;
     countPending();
   }
   function loadAll() {
-    return Promise.all([Store.allEvents(), Store.getMeta('cfg'), Store.getMeta('locs')]).then(function (r) {
+    return Promise.all([Store.allEvents(), Store.getMeta('cfg'), Store.getMeta('locs'), Store.getMeta('orders')]).then(function (r) {
       S.events = r[0] || [];
+      if (Array.isArray(r[3])) ord.list = r[3];
       if (r[1]) { var d = defaults(); for (var k in r[1]) d[k] = r[1][k]; cfg = d; }
       S.locs = r[2] || [];
-      ui.mode = cfg.mode || 'IN';
+      if (!cfg.ground || typeof cfg.ground !== 'object') cfg.ground = {};
+      ui.mode = cfg.mode === 'PICK' ? 'IN' : (cfg.mode || 'IN');
       if (ui.whSeen !== cfg.wh) { ui.whSeen = cfg.wh; followWh(); }
       rebuild();
     });
@@ -1130,6 +1321,7 @@ td.act{text-align:right;white-space:nowrap}
       evs.forEach(function (e) { if (e.type === 'VOID' || e.ts < S.st.maxTs) inc = false; });
       evs.forEach(function (e) { S.events.push(e); S.byId.set(e.id, e); });
       if (inc) evs.forEach(function (e) { C.applyEvent(S.st, e); }); else rebuild();
+      ord.idx = null;
       cfg.unsent = (cfg.unsent || 0) + evs.length;
       if (!cfg.dirtySince) cfg.dirtySince = Date.now();
       countPending(); scheduleFlush();
@@ -1193,6 +1385,7 @@ td.act{text-align:right;white-space:nowrap}
     if (ui.tab === 'scan') renderScan();
     else if (ui.tab === 'stock') { if (typing) renderStockBody(); else renderStock(); }
     else if (ui.tab === 'moves') renderMovesBody();
+    else if (ui.tab === 'orders') { if (!typing) renderOrders(); }
     else if (!typing) renderTab();
   }
   function syncInit() {
@@ -1211,6 +1404,9 @@ td.act{text-align:right;white-space:nowrap}
   function syncStop() {
     if (sync.unsub) { try { sync.unsub(); } catch (e) { } sync.unsub = null; }
     if (sync.unsubMeta) { try { sync.unsubMeta(); } catch (e) { } sync.unsubMeta = null; }
+    if (ord.unsub) { try { ord.unsub(); } catch (e) { } ord.unsub = null; }
+    if (ord.unsubDev) { try { ord.unsubDev(); } catch (e) { } ord.unsubDev = null; }
+    ord.devSent = '';
     sync.primed = false; sync.live = false; clearTimeout(sync.timer);
   }
   function syncStart() {
@@ -1219,6 +1415,27 @@ td.act{text-align:right;white-space:nowrap}
     var onErr = function (e) { sync.err = fsMsg(e); sync.live = false; renderChrome(); if (ui.syncDlgOpen) syncDlg(); setTimeout(function () { if (sync.user) syncStart(); }, 30000); };
     sync.unsub = sync.remote.listenLog(since, onRemoteDocs, onErr);
     sync.unsubMeta = sync.remote.listenMeta(onRemoteMeta, function () { });
+    ordersListen();
+  }
+  /* comenzile: PC-ul vede toate comenzile, scannerul doar pe cele deschise din depozitul lui */
+  function ordersListen() {
+    if (!sync.remote || !sync.user) return;
+    if (ord.unsub) { try { ord.unsub(); } catch (e) { } ord.unsub = null; }
+    if (!isPC() && !cfg.wh) return;
+    ord.unsub = sync.remote.listenOrders(isPC() ? null : cfg.wh, function (list) {
+      ord.list = list.filter(function (o) { return o && o.no && Array.isArray(o.items); });
+      Store.setMeta('orders', ord.list).catch(function () { });
+      if (ui.tab === 'orders' || (ui.tab === 'scan' && ui.mode === 'PICK')) softRefresh(); else renderChrome();
+    }, function () { });
+    if (isPC() && !ord.unsubDev) ord.unsubDev = sync.remote.listenDevices(function (list) { ord.devs = list; if (ui.tab === 'orders') softRefresh(); }, function () { });
+    deviceAnnounce();
+  }
+  function deviceAnnounce() {
+    if (!sync.remote || !sync.user) return;
+    var key = [cfg.devName, cfg.wh, isPC() ? 'pc' : 'scanner'].join('|');
+    if (key === ord.devSent) return;
+    ord.devSent = key;
+    sync.remote.deviceSet(cfg.devId, { name: cfg.devName || ('Dispozitiv ' + cfg.devId), wh: cfg.wh || '', kind: isPC() ? 'pc' : 'scanner' }).catch(function () { ord.devSent = ''; });
   }
   function onRemoteDocs(docs, fromCache) {
     syncQ = syncQ.then(function () {
@@ -1283,13 +1500,15 @@ td.act{text-align:right;white-space:nowrap}
     var locs = S.locs.filter(function (l) { return !l.demo && !l.up; });
     var p = { addWh: cfg.metaAdd.wh.slice(), addDest: cfg.metaAdd.dest.slice(), delWh: cfg.metaDel.wh.slice(), delDest: cfg.metaDel.dest.slice(),
       addLocs: locs.map(function (l) { return { w: l.wh, l: l.loc }; }) };
-    if (!p.addWh.length && !p.addDest.length && !p.delWh.length && !p.delDest.length && !p.addLocs.length) return;
+    if (cfg.groundDirty) p.ground = JSON.parse(JSON.stringify(cfg.ground));
+    if (!p.addWh.length && !p.addDest.length && !p.delWh.length && !p.delDest.length && !p.addLocs.length && !p.ground) return;
     sync.metaBusy = true;
     sync.remote.metaPatch(p).then(function () {
       var drop = function (list, sent) { return list.filter(function (x) { return sent.indexOf(x) < 0; }); };
       cfg.metaAdd.wh = drop(cfg.metaAdd.wh, p.addWh); cfg.metaAdd.dest = drop(cfg.metaAdd.dest, p.addDest);
       cfg.metaDel.wh = drop(cfg.metaDel.wh, p.delWh); cfg.metaDel.dest = drop(cfg.metaDel.dest, p.delDest);
       locs.forEach(function (l) { l.up = 1; });
+      if (p.ground && JSON.stringify(p.ground) === JSON.stringify(cfg.ground)) cfg.groundDirty = false;
       sync.metaBusy = false; saveCfg();
       return Store.setMeta('locs', S.locs);
     }).catch(function () { sync.metaBusy = false; });
@@ -1300,8 +1519,10 @@ td.act{text-align:right;white-space:nowrap}
     if (!cfg.metaInit) { // prima legătură: listele locale care lipsesc de pe server urcă acolo
       cfg.warehouses.forEach(function (w) { if ((m.warehouses || []).indexOf(w) < 0 && cfg.metaAdd.wh.indexOf(w) < 0) cfg.metaAdd.wh.push(w); });
       cfg.dests.forEach(function (d) { if ((m.dests || []).indexOf(d) < 0 && cfg.metaAdd.dest.indexOf(d) < 0) cfg.metaAdd.dest.push(d); });
+      if (!m.ground) cfg.groundDirty = true;
       cfg.metaInit = true; changed = true;
     }
+    if (m.ground && !cfg.groundDirty && JSON.stringify(m.ground) !== JSON.stringify(cfg.ground)) { cfg.ground = m.ground; changed = true; }
     var apply = function (remote, add, del, cur, must) {
       if (!remote) return null;
       var out = remote.filter(function (x) { return typeof x === 'string' && x && del.indexOf(x) < 0; });
@@ -1423,10 +1644,12 @@ td.act{text-align:right;white-space:nowrap}
       (Store.mem ? '<span class="bad">DATELE NU SE SALVEAZĂ</span>' : (cfg.wh ? '<b>' + n + '</b> ' + (n === 1 ? 'palet' : 'paleți') + (sy ? '' : ' în stoc') : '') +
         (sy ? (cfg.wh ? ' · ' : '') + '<span class="sy ' + sy.c + '">' + sy.t + '</span>' : '')) + '</div>';
     $('dataDot').hidden = sync.user || !(cfg.unsent && cfg.dirtySince && Date.now() - cfg.dirtySince > 20 * 3600000);
+    var mine = myOrders().length;
+    $('ordBadge').hidden = !mine; $('ordBadge').textContent = mine;
   }
   function showTab(tab) {
     ui.tab = tab;
-    ['scan', 'stock', 'moves', 'data', 'settings'].forEach(function (t) { $('tab-' + t).hidden = t !== tab; });
+    ['scan', 'stock', 'moves', 'orders', 'data', 'settings'].forEach(function (t) { $('tab-' + t).hidden = t !== tab; });
     Array.prototype.forEach.call($('nav').querySelectorAll('button'), function (b) {
       if (b.getAttribute('data-tab') === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
@@ -1438,6 +1661,7 @@ td.act{text-align:right;white-space:nowrap}
     if (ui.tab === 'scan') { renderScan(); focusScan(); }
     else if (ui.tab === 'stock') renderStock();
     else if (ui.tab === 'moves') renderMoves();
+    else if (ui.tab === 'orders') renderOrders();
     else if (ui.tab === 'data') renderData();
     else renderSettings();
   }
@@ -1463,16 +1687,79 @@ td.act{text-align:right;white-space:nowrap}
     if (!parsed) return;
     if (!cfg.wh) { ui.result = { kind: 'error', msg: 'Alege întâi depozitul activ (butonul din stânga sus).' }; feedback('bad'); renderScan(); return; }
     if (ui.pending) { ui.note = 'Răspunde întâi la întrebare. Codul ' + parsed.id + ' nu a fost luat în calcul.'; feedback('bad'); renderScan(); return; }
-    var r = C.scanFlow(ui.mode, ui.slots, S.st, cfg.wh, cfg.dest, parsed), o = r.out;
+    if (ui.verify) return verifyScan(parsed);
+    if (ui.mode === 'PICK') return pickScanUi(parsed);
+    var r = C.scanFlow(ui.mode, ui.slots, S.st, cfg.wh, cfg.dest, parsed, groundFn), o = r.out;
     ui.slots = r.slots; ui.note = '';
     if (o.kind === 'need') { ui.result = o.msg ? { kind: 'warn', msg: o.msg } : null; feedback(o.warn ? 'warn' : 'tick'); }
     else if (o.kind === 'error') { ui.slots = null; ui.result = { kind: o.soft ? 'warn' : 'error', msg: o.msg }; feedback(o.soft ? 'warn' : 'bad'); }
     else if (o.kind === 'info') { ui.result = { kind: 'info', info: o.info }; feedback('tick'); }
     else if (o.kind === 'plan') {
       if (o.plan.status === 'ok') return commitPlan(o.plan);
+      if (o.plan.status === 'verify' && !o.plan.questions.length) { startVerify(o.plan, o.pid); renderScan(); return; }
       ui.pending = { plan: o.plan, pid: o.pid }; ui.result = null; feedback('ask');
     }
     renderScan();
+  }
+  /* parter: paleții care figurează pe locație se confirmă prin scanare înainte de a adăuga paletul nou */
+  function startVerify(plan, pid) {
+    ui.verify = { plan: plan, pid: pid, loc: plan.loc, items: plan.occupants.map(function (p) { return { p: p, state: 'pending' }; }) };
+    ui.slots = null; ui.pending = null; ui.result = null; ui.note = '';
+    feedback('ask');
+  }
+  function verifyScan(parsed) {
+    var v = ui.verify, it = null;
+    for (var i = 0; i < v.items.length; i++) if (v.items[i].p === parsed.id) { it = v.items[i]; break; }
+    if (it && it.state === 'pending') { it.state = 'ok'; ui.result = null; feedback('tick'); }
+    else if (it) { ui.result = { kind: 'warn', msg: 'Paletul ' + it.p + ' a fost deja ' + (it.state === 'ok' ? 'confirmat.' : 'marcat lipsă.') }; feedback('warn'); }
+    else if (parsed.id === v.pid) { ui.result = { kind: 'error', msg: 'Acesta este paletul nou. Scanează paleții care figurează deja pe ' + v.loc + ' sau apasă „Lipsă".' }; feedback('bad'); }
+    else { ui.result = { kind: 'error', msg: 'Paletul ' + parsed.id + ' nu figurează pe locația ' + v.loc + '.' }; feedback('bad'); }
+    if (v.items.every(function (x) { return x.state !== 'pending'; })) return verifyCommit();
+    renderScan();
+  }
+  function verifyCommit() {
+    var v = ui.verify, lost = v.items.filter(function (x) { return x.state === 'lost'; }).map(function (x) { return x.p; });
+    var specs = C.verifyEvents(v.plan, lost);
+    ui.verify = null;
+    return addEvents(specs, 'scan').then(function (evs) {
+      var main = evs[evs.length - 1];
+      ui.slots = null; ui.pending = null; ui.note = '';
+      ui.result = { kind: 'ok', ev: main, ids: evs.map(function (e) { return e.id; }), extra: lost.length ? plural(lost.length, 'palet mutat pe Lost', 'paleți mutați pe Lost') + ': ' + lost.join(', ') : '' };
+      feedback('ok'); renderScan();
+    });
+  }
+  /* comenzi: scanarea unui palet din comandă = ieșire către destinația comenzii */
+  function orderById(id) {
+    for (var i = 0; i < ord.list.length; i++) if (ord.list[i].id === id) return ord.list[i];
+    return ui.orderObj && ui.orderObj.id === id ? ui.orderObj : null; // comanda deschisă rămâne vizibilă și după ce s-a terminat
+  }
+  function orderProg(o) {
+    if (!ord.idx) ord.idx = C.pickIndex(S.events, S.st.voided);
+    return C.orderProgress(o, ord.idx, S.st);
+  }
+  function myOrders() {
+    if (!sync.user || !cfg.wh) return [];
+    return ord.list.filter(function (o) { return o.status === 'open' && o.wh === cfg.wh && (!o.devs || !o.devs.length || o.devs.indexOf(cfg.devId) >= 0); });
+  }
+  function pickScanUi(parsed) {
+    var o = orderById(ui.order);
+    if (!o) { ui.result = { kind: 'error', msg: 'Comanda nu mai este disponibilă.' }; feedback('bad'); renderScan(); return; }
+    var r = C.pickScan(o, orderProg(o), S.st, parsed);
+    if (r.kind === 'pick') {
+      return addEvents([r.event], 'scan').then(function (evs) {
+        ui.result = { kind: 'ok', ev: evs[0], ids: [evs[0].id] }; ui.outCount++;
+        feedback('ok'); orderMaybeDone(o); renderScan();
+      });
+    }
+    ui.result = { kind: r.kind === 'info' ? 'warn' : (r.soft ? 'warn' : 'error'), msg: r.msg };
+    feedback(r.kind === 'info' ? 'tick' : r.soft ? 'warn' : 'bad'); renderScan();
+  }
+  function orderMaybeDone(o) {
+    var prog = orderProg(o);
+    if (prog.done && o.status === 'open' && sync.remote && sync.user) {
+      o.status = 'done'; o.doneAt = Date.now();
+      sync.remote.orderUpdate(o.id, { status: 'done', doneAt: o.doneAt, doneBy: cfg.devName || cfg.devId }).catch(function () { o.status = 'open'; });
+    }
   }
   function commitPlan(plan) {
     return addEvents(plan.events, 'scan').then(function (evs) {
@@ -1497,7 +1784,7 @@ td.act{text-align:right;white-space:nowrap}
     if (info.what === 'location') {
       var n = info.pallets.length;
       h += '<div class="muted">Locația · ' + esc(info.wh) + '</div><div class="big-code">' + esc(info.loc) + '</div>';
-      h += n === 0 ? '<span class="pill big free">Liberă</span>' : n === 1 ? '<span class="pill big occ">Ocupată</span>' : '<span class="pill big conf">' + n + ' paleți — conflict</span>';
+      h += n === 0 ? '<span class="pill big free">Liberă</span>' : n === 1 ? '<span class="pill big occ">Ocupată</span>' : groundFn(info.wh, info.loc) ? '<span class="pill big occ">' + n + ' paleți (parter)</span>' : '<span class="pill big conf">' + n + ' paleți — conflict</span>';
       info.pallets.forEach(function (p) {
         var s = S.st.stock.get(p);
         h += '<div class="row"><div>' + codeH(p) + '<div class="muted">aici din ' + C.fmtDT(s ? s.lastTs : 0) + '</div></div><button type="button" class="btn sm" data-act="pal" data-p="' + esc(p) + '">Detalii</button></div>';
@@ -1517,8 +1804,27 @@ td.act{text-align:right;white-space:nowrap}
     var m = ui.mode, P = ui.slots && ui.slots.P, L = ui.slots && ui.slots.L, h = '', askT = '';
     Array.prototype.forEach.call($('modes').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m ? 'true' : 'false'); });
     $('panel').setAttribute('data-mode', m);
-    $('panelHead').textContent = ({ IN: 'Intrare în ', OUT: 'Ieșire din ', MOVE: 'Mutare în ', CHECK: 'Verificare în ' })[m] + (cfg.wh || '—');
-    if (m === 'IN') {
+    $('panelHead').textContent = ({ IN: 'Intrare în ', OUT: 'Ieșire din ', MOVE: 'Mutare în ', CHECK: 'Verificare în ', PICK: 'Comandă · ' })[m] + (cfg.wh || '—');
+    var po = null, prog = null;
+    if (m === 'PICK') {
+      po = orderById(ui.order);
+      if (!po) { askT = 'Comanda nu mai este disponibilă'; h = '<button type="button" class="mini" data-act="ord-exit">Ieși</button>'; }
+      else {
+        prog = orderProg(po);
+        var nx = null; for (var k0 = 0; k0 < prog.items.length; k0++) if (prog.items[k0].state === 'pending') { nx = prog.items[k0]; break; }
+        $('panelHead').textContent = 'Comanda ' + po.no + ' · ' + (po.dest || '—');
+        askT = nx ? 'Ridică paletul de pe ' + (nx.loc || 'locație necunoscută') : (prog.done ? 'Comanda este completă' : 'Nimic de preluat');
+        h = (nx ? slotH('Palet', nx.p, false, nx.inStock ? '' : 'nu mai figurează în stoc') : '') +
+          '<div class="outbar"><span>Preluați: <b>' + prog.picked + '</b> / ' + prog.total + (prog.missing ? ' · negăsiți: <b>' + prog.missing + '</b>' : '') + '</span><span><button type="button" data-act="ord-exit">Ieși din comandă</button></span></div>';
+      }
+    } else if (ui.verify) {
+      var v = ui.verify, nOk = v.items.filter(function (x) { return x.state !== 'pending'; }).length;
+      askT = 'Confirmă paleții de pe ' + v.loc;
+      h = '<div class="vhead">Palet nou: <b class="code">' + esc(v.pid) + '</b> · confirmați ' + nOk + ' / ' + v.items.length + '</div>' + v.items.map(function (it) {
+        return '<div class="slot' + (it.state === 'pending' ? ' next' : '') + '"><span class="k">' + (it.state === 'ok' ? '✓ aici' : it.state === 'lost' ? 'lipsă' : 'scanează') + '</span><span class="v vrow">' + codeH(it.p) +
+          (it.state === 'pending' ? '<button type="button" class="vb" data-act="ver-lost" data-p="' + esc(it.p) + '">Lipsă</button>' : '') + '</span></div>';
+      }).join('');
+    } else if (m === 'IN') {
       askT = P && !L ? 'Scanează locația' : 'Scanează paletul';
       h = slotH('Palet', P && P.id, !P) + slotH('Locație', L, !!P && !L);
     } else if (m === 'MOVE') {
@@ -1532,7 +1838,7 @@ td.act{text-align:right;white-space:nowrap}
     } else { askT = 'Scanează o locație sau un palet'; }
     if (ui.pending) { askT = 'Răspunde mai jos'; h = ''; }
     $('ask').textContent = askT;
-    $('slots').innerHTML = h + (ui.slots || ui.pending ? '<button type="button" class="mini" data-act="scan-cancel">Renunță</button>' : '');
+    $('slots').innerHTML = h + (ui.slots || ui.pending || ui.verify ? '<button type="button" class="mini" data-act="scan-cancel">Renunță</button>' : '');
 
     var r = '';
     if (ui.pending) {
@@ -1544,7 +1850,7 @@ td.act{text-align:right;white-space:nowrap}
       var x = ui.result;
       if (x.kind === 'ok') {
         var tx = okText(x.ev);
-        r = '<div class="res ok"><div class="th"><div class="t">✓ ' + tx[0] + '</div><button type="button" class="btn sm" data-act="undo">Anulează</button></div><div class="d">' + codeH(x.ev.p) + '</div><div class="d">' + tx[1] + ' · ' + C.fmtT(x.ev.ts) + '</div></div>';
+        r = '<div class="res ok"><div class="th"><div class="t">✓ ' + tx[0] + '</div><button type="button" class="btn sm" data-act="undo">Anulează</button></div><div class="d">' + codeH(x.ev.p) + '</div><div class="d">' + tx[1] + ' · ' + C.fmtT(x.ev.ts) + '</div>' + (x.extra ? '<div class="d"><b>' + esc(x.extra) + '</b></div>' : '') + '</div>';
       } else if (x.kind === 'info') r = infoH(x.info);
       else r = '<div class="res ' + (x.kind === 'error' ? 'bad' : 'warn') + '"><div class="t">' + esc(x.msg) + '</div></div>';
     }
@@ -1552,10 +1858,18 @@ td.act{text-align:right;white-space:nowrap}
     if (ui.pending) { var m0 = $('main'); m0.scrollTop = m0.scrollHeight; } else $('main').scrollTop = 0;
 
     var rec = [], i;
-    for (i = S.events.length - 1; i >= 0 && rec.length < 6; i--) { var e = S.events[i]; if (e.type !== 'VOID' && e.src !== 'demo' && isOwn(e)) rec.push(e); }
-    $('recent').innerHTML = rec.length ? '<div class="sec-h">Ultimele mișcări de pe acest dispozitiv</div>' + rec.map(function (e) {
-      return '<div class="rec' + (S.st.voided.has(e.id) ? ' void' : '') + '">' + pill(e.type) + '<div>' + codeH(e.p) + '<div class="w">' + esc(e.wh) + (e.loc ? ' / ' + esc(e.loc) : '') + (e.type === 'OUT' && e.dest ? ' → ' + esc(e.dest) : '') + '</div></div><span class="w nowrap">' + C.fmtT(e.ts) + '</span></div>';
-    }).join('') : '';
+    if (m === 'PICK' && prog) {
+      $('recent').innerHTML = '<div class="sec-h">Paleții comenzii, în ordinea locațiilor</div>' + prog.items.map(function (it) {
+        var lab = it.state === 'picked' ? '<span class="pill OUT">preluat</span>' : it.state === 'missing' ? '<span class="pill UNLOC">negăsit</span>' : '<span class="pill MOVE">de luat</span>';
+        return '<div class="rec' + (it.state !== 'pending' ? ' dim' : '') + '">' + lab + '<div>' + codeH(it.p) + '<div class="w">' + esc(it.loc || it.plannedLoc || 'fără locație') + (it.ev && it.ev.dev ? ' · ' + esc(it.ev.dev) : '') + '</div></div>' +
+          (it.state === 'pending' ? '<button type="button" class="btn sm" data-act="ord-miss" data-p="' + esc(it.p) + '">Negăsit</button>' : '<span></span>') + '</div>';
+      }).join('');
+    } else {
+      for (i = S.events.length - 1; i >= 0 && rec.length < 6; i--) { var e = S.events[i]; if (e.type !== 'VOID' && e.src !== 'demo' && isOwn(e)) rec.push(e); }
+      $('recent').innerHTML = rec.length ? '<div class="sec-h">Ultimele mișcări de pe acest dispozitiv</div>' + rec.map(function (e) {
+        return '<div class="rec' + (S.st.voided.has(e.id) ? ' void' : '') + '">' + pill(e.type) + '<div>' + codeH(e.p) + '<div class="w">' + esc(e.wh) + (e.loc ? ' / ' + esc(e.loc) : '') + (e.type === 'OUT' && e.dest ? ' → ' + esc(e.dest) : '') + '</div></div><span class="w nowrap">' + C.fmtT(e.ts) + '</span></div>';
+      }).join('') : '';
+    }
     inp.setAttribute('inputmode', cfg.kb ? 'text' : 'none');
     $('kbBtn').setAttribute('aria-pressed', cfg.kb ? 'true' : 'false');
   }
@@ -1567,13 +1881,14 @@ td.act{text-align:right;white-space:nowrap}
     return C.stockList(S.st).filter(function (s) {
       if (fs.wh && s.wh !== fs.wh) return false;
       if (fs.state === 'noloc' && s.loc) return false;
+      if (fs.state === 'lost' && s.loc !== C.LOST) return false;
       if (nd && s.p.indexOf(nd.id) < 0 && s.p.indexOf(nd.raw) < 0 && s.loc.indexOf(nd.raw) < 0) return false;
       return true;
     });
   }
   function filteredLocs() {
     var nd = needle(fs.q);
-    return C.locationList(S.st).filter(function (l) {
+    return C.locationList(S.st, groundFn).filter(function (l) {
       if (fs.wh && l.wh !== fs.wh) return false;
       if (fs.state && fs.state !== 'noloc' && l.state !== fs.state) return false;
       if (nd && l.loc.indexOf(nd.raw) < 0 && !l.pallets.some(function (p) { return p.indexOf(nd.id) >= 0; })) return false;
@@ -1585,11 +1900,11 @@ td.act{text-align:right;white-space:nowrap}
     return hasDemo() ? '<div class="note"><span><b>Date demonstrative.</b> Paleții și locațiile de mai jos sunt exemple, nu stocul real.</span><button type="button" class="btn sm" data-act="demo-del">Șterge datele demo</button></div>' : '';
   }
   function renderStock() {
-    var st = S.st, cnt = {}, today = {}, noloc = 0, conf = 0, d0 = new Date(); d0.setHours(0, 0, 0, 0); d0 = d0.getTime();
+    var st = S.st, cnt = {}, today = {}, noloc = 0, conf = 0, lost = 0, d0 = new Date(); d0.setHours(0, 0, 0, 0); d0 = d0.getTime();
     cfg.warehouses.forEach(function (w) { cnt[w] = 0; today[w] = [0, 0]; });
     if (fs.wh && cfg.warehouses.indexOf(fs.wh) < 0) fs.wh = '';
-    st.stock.forEach(function (s) { cnt[s.wh] = (cnt[s.wh] || 0) + 1; if (!s.loc && (!fs.wh || s.wh === fs.wh)) noloc++; });
-    st.byLoc.forEach(function (set, k) { if (set.size > 1 && (!fs.wh || k.split('\u0001')[0] === fs.wh)) conf++; });
+    st.stock.forEach(function (s) { cnt[s.wh] = (cnt[s.wh] || 0) + 1; if (!fs.wh || s.wh === fs.wh) { if (!s.loc) noloc++; else if (s.loc === C.LOST) lost++; } });
+    st.byLoc.forEach(function (set, k) { var kk = k.split('\u0001'); if (set.size > 1 && (!fs.wh || kk[0] === fs.wh) && kk[1] !== C.LOST && !groundFn(kk[0], kk[1])) conf++; });
     for (var i = S.events.length - 1; i >= 0 && S.events[i].ts >= d0; i--) {
       var e = S.events[i];
       if (st.voided.has(e.id) || !today[e.wh]) continue;
@@ -1601,6 +1916,7 @@ td.act{text-align:right;white-space:nowrap}
       h += '<div class="kpi" data-wh="' + Math.min(ix, 3) + '"><div class="l">' + esc(w) + '</div><div class="n">' + (cnt[w] || 0) + '</div><div class="s"><span class="hide-sm">paleți în stoc · </span>azi +' + today[w][0] + ' / −' + today[w][1] + '</div></div>';
     });
     if (noloc) h += '<div class="kpi alert"><div class="l">Fără locație</div><div class="n">' + noloc + '</div><div class="s">paleți în stoc a căror locație a fost preluată</div></div>';
+    if (lost) h += '<div class="kpi alert"><div class="l">Lost</div><div class="n">' + lost + '</div><div class="s">paleți negăsiți la confirmarea locației</div></div>';
     if (conf) h += '<div class="kpi alert"><div class="l">Conflicte</div><div class="n">' + conf + '</div><div class="s">locații pe care figurează mai mulți paleți</div></div>';
     h += '</div>';
     if (!S.events.length) {
@@ -1612,7 +1928,7 @@ td.act{text-align:right;white-space:nowrap}
       '<button type="button" class="btn sm only-sm" data-act="flt" aria-expanded="' + !!ui.flt + '">' + (ui.flt ? 'Ascunde filtrele' : 'Filtre și export') + '</button><div class="more' + (ui.flt ? ' open' : '') + '">' +
       '<label class="fld"><span>Depozit</span><select class="inp" id="fsWh" data-f="fs.wh">' + whOpts(fs.wh, 'Toate') + '</select></label>' +
       '<label class="fld"><span>' + (fs.view === 'p' ? 'Arată' : 'Stare') + '</span><select class="inp" id="fsState" data-f="fs.state">' +
-      (fs.view === 'p' ? opt('', 'Toți paleții', !fs.state) + opt('noloc', 'Doar fără locație', fs.state === 'noloc')
+      (fs.view === 'p' ? opt('', 'Toți paleții', !fs.state) + opt('noloc', 'Doar fără locație', fs.state === 'noloc') + opt('lost', 'Doar Lost', fs.state === 'lost')
         : opt('', 'Toate', !fs.state) + opt('ocupată', 'Ocupate', fs.state === 'ocupată') + opt('liberă', 'Libere', fs.state === 'liberă') + opt('conflict', 'Conflict', fs.state === 'conflict')) + '</select></label>' +
       '<div class="btns"><button type="button" class="btn" data-act="x-stock" data-fmt="xlsx">Excel</button><button type="button" class="btn" data-act="x-stock" data-fmt="csv">CSV</button></div></div></div>' +
       '<div id="stockBody"></div>';
@@ -1627,7 +1943,7 @@ td.act{text-align:right;white-space:nowrap}
       list = fs.view === 'p' ? filteredStock() : filteredLocs();
       h = '<div class="tw">';
       if (fs.view === 'p') list.slice(0, fs.limit).forEach(function (s) {
-        h += '<button type="button" class="lrow" data-act="pal" data-p="' + esc(s.p) + '"><span>' + codeH(s.p) + '</span>' + (s.loc ? '<b class="code">' + esc(s.loc) + '</b>' : '<span class="pill UNLOC">fără locație</span>') + '<span class="c">' + esc(s.wh) + ' · intrat la ' + C.fmtDT(s.inTs).slice(0, 16) + '</span></button>';
+        h += '<button type="button" class="lrow" data-act="pal" data-p="' + esc(s.p) + '"><span>' + codeH(s.p) + '</span>' + (s.loc === C.LOST ? '<span class="pill VOID">Lost</span>' : s.loc ? '<b class="code">' + esc(s.loc) + '</b>' : '<span class="pill UNLOC">fără locație</span>') + '<span class="c">' + esc(s.wh) + ' · intrat la ' + C.fmtDT(s.inTs).slice(0, 16) + '</span></button>';
       });
       else list.slice(0, fs.limit).forEach(function (l) {
         h += '<div class="lrow"><b class="code">' + esc(l.loc) + '</b><span class="pill ' + (l.state === 'liberă' ? 'free' : l.state === 'ocupată' ? 'occ' : 'conf') + '">' + l.state + '</span><span class="c">' + esc(l.wh) + (l.pallets.length ? ' · ' : '') + l.pallets.map(function (p) { return '<button type="button" class="btn sm" data-act="pal" data-p="' + esc(p) + '">' + codeH(p) + '</button>'; }).join(' ') + '</span></div>';
@@ -1638,7 +1954,7 @@ td.act{text-align:right;white-space:nowrap}
       list = filteredStock();
       h = '<div class="tw"><table><thead><tr><th>Palet</th><th>Depozit</th><th>Locație</th><th class="hide-sm">Intrat la</th><th class="hide-sm">Ultima mișcare</th><th class="num hide-sm">Zile</th><th></th></tr></thead><tbody>';
       list.slice(0, fs.limit).forEach(function (s) {
-        h += '<tr><td>' + codeH(s.p) + '</td><td>' + esc(s.wh) + '</td><td>' + (s.loc ? '<span class="code">' + esc(s.loc) + '</span>' : '<span class="pill UNLOC">fără locație</span>') + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.inTs) + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.lastTs) + '</td><td class="num hide-sm">' + Math.max(0, Math.floor((now - s.inTs) / 86400000)) + '</td><td class="act"><button type="button" class="btn sm" data-act="pal" data-p="' + esc(s.p) + '">Detalii</button></td></tr>';
+        h += '<tr><td>' + codeH(s.p) + '</td><td>' + esc(s.wh) + '</td><td>' + (s.loc === C.LOST ? '<span class="pill VOID">Lost</span>' : s.loc ? '<span class="code">' + esc(s.loc) + '</span>' : '<span class="pill UNLOC">fără locație</span>') + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.inTs) + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.lastTs) + '</td><td class="num hide-sm">' + Math.max(0, Math.floor((now - s.inTs) / 86400000)) + '</td><td class="act"><button type="button" class="btn sm" data-act="pal" data-p="' + esc(s.p) + '">Detalii</button></td></tr>';
       });
       if (!list.length) h += '<tr><td colspan="7" class="empty">Niciun palet nu corespunde filtrului.</td></tr>';
       h += '</tbody></table></div>';
@@ -1672,7 +1988,7 @@ td.act{text-align:right;white-space:nowrap}
   }
   function renderMoves() {
     var tOpts = opt('', 'Toate', !fm.type);
-    ['IN', 'OUT', 'MOVE', 'UNLOC', 'VOID'].forEach(function (t) { tOpts += opt(t, C.TYPE_LABEL[t], fm.type === t); });
+    ['IN', 'OUT', 'MOVE', 'UNLOC', 'PICKMISS', 'VOID'].forEach(function (t) { tOpts += opt(t, C.TYPE_LABEL[t], fm.type === t); });
     $('tab-moves').innerHTML = demoNote() + '<div class="bar">' +
       '<label class="fld grow"><span>Caută palet sau locație</span><input class="inp" id="fmQ" data-f="fm.q" type="search" value="' + esc(fm.q) + '" placeholder="scanează sau tastează" autocomplete="off"></label>' +
       '<button type="button" class="btn sm only-sm" data-act="flt" aria-expanded="' + !!ui.flt + '">' + (ui.flt ? 'Ascunde filtrele' : 'Filtre și export') + '</button><div class="more' + (ui.flt ? ' open' : '') + '">' +
@@ -1840,7 +2156,7 @@ td.act{text-align:right;white-space:nowrap}
     var defWh = $('impWh') ? $('impWh').value : '', defType = $('impType') ? $('impType').value : 'IN';
     toast('Citesc fișierul…');
     readTable(file).then(function (t) {
-      var res = C.buildImport(t.rows, { warehouses: cfg.warehouses, defaultWh: defWh, defaultType: defType, defaultDest: cfg.dest, now: Date.now() }, S.st);
+      var res = C.buildImport(t.rows, { warehouses: cfg.warehouses, defaultWh: defWh, defaultType: defType, defaultDest: cfg.dest, now: Date.now(), groundFn: groundFn }, S.st);
       $('toast').hidden = true;
       if (res.error) { openDlg('<h2>Fișierul nu poate fi importat</h2><p>' + esc(res.error) + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); return; }
       if (!res.items.length) { openDlg('<h2>Fișier fără rânduri</h2><p>Am găsit antetul, dar niciun rând cu date sub el.</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); return; }
@@ -1904,6 +2220,91 @@ td.act{text-align:right;white-space:nowrap}
       }).catch(function (e) { toast('Încărcarea a eșuat: ' + (e.message || e)); });
   }
 
+  /* ================= comenzi ================= */
+  var oimp = null;
+  function devName(id) { for (var i = 0; i < ord.devs.length; i++) if (ord.devs[i].id === id) return ord.devs[i].name || id; return id; }
+  function ordStatusH(o) { return o.status === 'open' ? '<span class="pill MOVE">deschisă</span>' : o.status === 'done' ? '<span class="pill IN">terminată</span>' : '<span class="pill VOID">închisă</span>'; }
+  function renderOrders() {
+    var el = $('tab-orders'), h = '';
+    if (!sync.on) { el.innerHTML = '<div class="card"><h2>Comenzi</h2><p>Comenzile funcționează doar cu sincronizare online: se încarcă pe PC și ajung pe scannere prin server. Această instalare lucrează local.</p></div>'; return; }
+    if (!sync.user) { el.innerHTML = '<div class="card"><h2>Comenzi</h2><p>Conectează dispozitivul la sincronizare ca să vezi comenzile.</p><div class="btns"><button type="button" class="btn pri" data-act="sync-dlg">Conectează dispozitivul</button></div></div>'; return; }
+    if (!isPC()) {
+      var mine = myOrders();
+      h = '<h2>Comenzi pentru ' + esc(cfg.wh || '—') + '</h2>';
+      if (!mine.length) h += '<div class="card"><p>Nicio comandă deschisă pentru acest scanner. Comenzile se încarcă și se alocă de pe PC.</p></div>';
+      mine.forEach(function (o) {
+        var pr = orderProg(o);
+        h += '<button type="button" class="orow" data-act="ord-open" data-id="' + esc(o.id) + '"><b>' + esc(o.no) + '</b><span>' + esc(o.dest || '') + '</span><span class="c">' + pr.picked + ' / ' + pr.total + ' preluați' + (pr.missing ? ' · ' + pr.missing + ' negăsiți' : '') + (o.devs && o.devs.length ? ' · ' + o.devs.map(function (d) { return d === cfg.devId ? 'acest scanner' : devName(d); }).join(', ') : ' · orice scanner') + '</span></button>';
+      });
+      el.innerHTML = h; return;
+    }
+    var scanners = ord.devs.filter(function (d) { return d.kind !== 'pc'; });
+    h = '<div class="card"><h2>Comandă nouă</h2><p>Încarcă un fișier Excel sau CSV cu SSCC-urile comenzii. Fiecare palet trebuie să fie în stoc; o comandă cu paleți lipsă este respinsă și îți arăt care sunt. Coloane: Comanda, SSCC, Destinatie (ultimele două opționale).</p>' +
+      '<div class="bar"><label class="fld"><span>Destinație pentru rândurile fără destinație</span><select class="inp" id="ordDest">' + cfg.dests.map(function (d) { return opt(d, d, d === cfg.dest); }).join('') + '</select></label>' +
+      '<div class="btns"><button type="button" class="btn pri" data-act="pick-file" data-for="ordFile">Alege fișierul</button><button type="button" class="btn" data-act="tpl-ord">Descarcă șablonul</button></div></div><input type="file" id="ordFile" accept=".xlsx,.xls,.xlsm,.csv,.txt" hidden></div>';
+    h += '<h2>Comenzi</h2>';
+    if (!ord.list.length) h += '<div class="card"><p>Încă nu există comenzi.</p></div>';
+    else {
+      var list = ord.list.slice().sort(function (a, b) { return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || (b.created || 0) - (a.created || 0); });
+      h += '<div class="tw"><table><thead><tr><th>Comanda</th><th>Destinație</th><th>Depozit</th><th>Paleți</th><th>Scannere</th><th>Stare</th><th>Creată</th><th></th></tr></thead><tbody>';
+      list.forEach(function (o) {
+        var pr = orderProg(o);
+        h += '<tr><td><b>' + esc(o.no) + '</b></td><td>' + esc(o.dest || '') + '</td><td>' + esc(o.wh) + '</td><td class="nowrap">' + pr.picked + ' / ' + pr.total + (pr.missing ? ' <span class="pill UNLOC">' + pr.missing + ' negăsiți</span>' : '') + '</td>' +
+          '<td>' + (o.devs && o.devs.length ? o.devs.map(devName).map(esc).join(', ') : '<span class="muted">orice scanner din ' + esc(o.wh) + '</span>') + '</td><td>' + ordStatusH(o) + '</td><td class="nowrap">' + (o.created ? C.fmtDT(o.created).slice(0, 16) : '') + '</td>' +
+          '<td class="act"><button type="button" class="btn sm" data-act="ord-detail" data-id="' + esc(o.id) + '">Detalii</button> ' + (o.status === 'open' ? '<button type="button" class="btn sm" data-act="ord-assign" data-id="' + esc(o.id) + '">Alocă</button> <button type="button" class="btn sm" data-act="ord-close" data-id="' + esc(o.id) + '">Închide</button>' : '<button type="button" class="btn sm" data-act="ord-reopen" data-id="' + esc(o.id) + '">Redeschide</button>') + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    if (scanners.length) h += '<p class="muted" style="margin-top:10px">Scannere cunoscute: ' + scanners.map(function (d) { return esc(d.name || d.id) + (d.wh ? ' (' + esc(d.wh) + ')' : ''); }).join(', ') + '.</p>';
+    else h += '<p class="muted" style="margin-top:10px">Niciun scanner conectat încă. Scannerele apar aici după ce se conectează la sincronizare.</p>';
+    el.innerHTML = h;
+  }
+  function startOrderImport(file) {
+    var defDest = $('ordDest') ? $('ordDest').value : cfg.dest;
+    toast('Citesc fișierul…');
+    readTable(file).then(function (t) {
+      var res = C.buildOrderImport(t.rows, { defaultNo: file.name.replace(/\.[^.]+$/, ''), defaultDest: defDest }, S.st);
+      $('toast').hidden = true;
+      if (res.error) { openDlg('<h2>Fișierul nu poate fi folosit</h2><p>' + esc(res.error) + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); return; }
+      oimp = res;
+      var h = '<h2>Comenzi din ' + esc(file.name) + '</h2>';
+      if (res.orders.length) {
+        h += '<p class="st-ok">' + plural(res.orders.length, 'comandă poate fi creată', 'comenzi pot fi create') + ':</p><ul class="list">' + res.orders.map(function (o) {
+          return '<li><span><b>' + esc(o.no) + '</b> · ' + esc(o.dest || '—') + ' · ' + esc(o.wh) + '</span><span class="muted">' + plural(o.items.length, 'palet', 'paleți') + '</span></li>';
+        }).join('') + '</ul>';
+      }
+      if (res.rejected.length) {
+        h += '<p class="st-err">' + plural(res.rejected.length, 'comandă respinsă', 'comenzi respinse') + ' — corectează fișierul și încarcă-l din nou:</p>' + res.rejected.map(function (r) {
+          return '<div class="note"><span><b>' + esc(r.no) + '</b><br>' + r.errors.slice(0, 15).map(esc).join('<br>') + (r.errors.length > 15 ? '<br>… încă ' + (r.errors.length - 15) : '') + '</span></div>';
+        }).join('');
+      }
+      h += '<div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button>' + (res.orders.length ? '<button type="button" class="btn pri" data-act="ord-create">Creează ' + plural(res.orders.length, 'comanda', 'comenzile') + '</button>' : '') + '</div>';
+      openDlg(h, false, function () { oimp = null; });
+    }).catch(function (e) { $('toast').hidden = true; toast('Fișierul nu a putut fi citit: ' + (e.message || e)); });
+  }
+  function orderDetailDlg(id) {
+    var o = orderById(id); if (!o) return;
+    var pr = orderProg(o);
+    var h = '<h2>Comanda ' + esc(o.no) + '</h2><p>' + esc(o.dest || '—') + ' · ' + esc(o.wh) + ' · ' + ordStatusH(o) + ' · creată ' + (o.created ? C.fmtDT(o.created) : '') + (o.by ? ' de ' + esc(o.by) : '') + '</p>' +
+      '<p><b>' + pr.picked + '</b> preluați · <b>' + pr.missing + '</b> negăsiți · <b>' + pr.pending + '</b> de preluat</p><div class="tw" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Palet</th><th>Locație</th><th>Stare</th><th>Când / cine</th></tr></thead><tbody>';
+    pr.items.forEach(function (it) {
+      h += '<tr><td>' + codeH(it.p) + '</td><td><span class="code">' + esc(it.loc || it.plannedLoc) + '</span></td><td>' + (it.state === 'picked' ? '<span class="pill OUT">preluat</span>' : it.state === 'missing' ? '<span class="pill UNLOC">negăsit</span>' : '<span class="pill MOVE">de luat</span>') + '</td><td class="nowrap">' + (it.ev ? C.fmtDT(it.ev.ts) + (it.ev.dev ? ' · ' + esc(it.ev.dev) : '') : '') + '</td></tr>';
+    });
+    h += '</tbody></table></div><div class="foot"><button type="button" class="btn" data-act="x-order" data-id="' + esc(o.id) + '">Excel</button><button type="button" class="btn pri" data-act="dlg-x">Închide</button></div>';
+    openDlg(h, true);
+  }
+  function orderAssignDlg(id) {
+    var o = orderById(id); if (!o) return;
+    var scanners = ord.devs.filter(function (d) { return d.kind !== 'pc'; }).sort(function (a, b) { return (a.wh === o.wh ? 0 : 1) - (b.wh === o.wh ? 0 : 1); });
+    var h = '<h2>Alocă comanda ' + esc(o.no) + '</h2><p>Bifează scannerele care văd comanda. Nimic bifat = orice scanner din ' + esc(o.wh) + '. Poți bifa mai multe; progresul e comun.</p>';
+    if (!scanners.length) h += '<p class="st-warn">Niciun scanner conectat încă.</p>';
+    scanners.forEach(function (d) {
+      h += '<label class="chk"><input type="checkbox" class="asg" value="' + esc(d.id) + '"' + (o.devs && o.devs.indexOf(d.id) >= 0 ? ' checked' : '') + '>' + esc(d.name || d.id) + (d.wh ? ' <span class="muted">&nbsp;(' + esc(d.wh) + ')</span>' : '') + '</label>';
+    });
+    h += '<div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button><button type="button" class="btn pri" data-act="ord-assign-go" data-id="' + esc(o.id) + '">Salvează</button></div>';
+    openDlg(h);
+  }
+
   /* ================= detalii palet ================= */
   var pd = null;
   function palletDlg(p, keepForm) {
@@ -1936,9 +2337,9 @@ td.act{text-align:right;white-space:nowrap}
     var wh = $('pdWh').value, loc = C.normLoc($('pdLoc').value);
     pd.msg = '';
     if (!wh || !loc) { pd.wh = wh; pd.loc = loc; pd.msg = 'Completează depozitul și locația.'; pd.q = null; palletDlg(pd.p, true); return; }
-    var plan = C.planPlace(S.st, wh, pd.p, loc, 'MOVE'), key = wh + '|' + loc;
+    var plan = C.planPlace(S.st, wh, pd.p, loc, 'MOVE', groundFn(wh, loc)), key = wh + '|' + loc;
     if (plan.status === 'noop') { pd.wh = wh; pd.loc = loc; pd.msg = plan.msg; pd.q = null; palletDlg(pd.p, true); return; }
-    if (plan.status === 'confirm' && pd.qKey !== key) { pd.wh = wh; pd.loc = loc; pd.q = plan.questions; pd.qKey = key; palletDlg(pd.p, true); return; }
+    if ((plan.status === 'confirm' || (plan.status === 'verify' && plan.questions.length)) && pd.qKey !== key) { pd.wh = wh; pd.loc = loc; pd.q = plan.questions; pd.qKey = key; palletDlg(pd.p, true); return; }
     var p = pd.p;
     addEvents(plan.events, 'manual').then(function () { renderTab(); palletDlg(p); toast('Salvat.'); });
   }
@@ -1988,6 +2389,11 @@ td.act{text-align:right;white-space:nowrap}
       '<div class="card"><h2>Depozite</h2><ul class="list">' + cfg.warehouses.map(function (w) {
         return '<li><span>' + esc(w) + '</span>' + (used[w] || w === cfg.wh ? '<span class="muted">' + (w === cfg.wh ? 'activ' : 'are mișcări') + '</span>' : '<button type="button" class="btn sm" data-act="wh-del" data-w="' + esc(w) + '">Șterge</button>') + '</li>';
       }).join('') + '</ul><div class="addrow"><input class="inp" id="newWh" type="text" placeholder="nume depozit nou" autocomplete="off"><button type="button" class="btn" data-act="wh-add">Adaugă</button></div></div>' +
+
+      '<div class="card"><h2>Locații de parter</h2><p>Pe parter pot sta mai mulți paleți pe aceeași locație. Când se adaugă un palet, paleții care figurează deja acolo se confirmă prin scanare, iar cei negăsiți trec pe locația <b>Lost</b>. Parterul se recunoaște după terminația codului de locație.</p>' +
+      cfg.warehouses.map(function (w) {
+        return '<label class="fld"><span>' + esc(w) + ' — codul de parter se termină cu</span><input class="inp code" data-g="' + esc(w) + '" type="text" value="' + esc(cfg.ground[w] || '') + '" placeholder="gol = fără parter" autocomplete="off"></label>';
+      }).join('') + '<p class="muted">Exemple: Orkla <span class="code">A1-37-01-0</span> → „-0"; Douglas <span class="code">G1H001A1</span> → „1".</p></div>' +
 
       '<div class="card"><h2>Destinații pentru ieșiri</h2><ul class="list">' + cfg.dests.map(function (d) {
         return '<li><label class="chk" style="padding:0;min-height:32px"><input type="radio" name="destDef" data-s="dest" value="' + esc(d) + '"' + (d === cfg.dest ? ' checked' : '') + '>' + esc(d) + '</label>' + (cfg.dests.length > 1 && d !== cfg.dest ? '<button type="button" class="btn sm" data-act="dest-del" data-d="' + esc(d) + '">Șterge</button>' : '') + '</li>';
@@ -2051,7 +2457,8 @@ td.act{text-align:right;white-space:nowrap}
       var firstRun = !cfg.setup;
       cfg.wh = el.getAttribute('data-w'); cfg.setup = true; ui.whSeen = cfg.wh; followWh();
       ui.slots = null; ui.pending = null; ui.result = null;
-      saveCfg(); closeDlg(); renderTab();
+      if (ui.mode === 'PICK') { ui.mode = 'IN'; ui.order = null; }
+      saveCfg(); closeDlg(); renderTab(); ordersListen();
       if (firstRun && sync.on && sync.authKnown && !sync.user) { cfg.syncAsked = true; saveCfg(); syncDlg(); }
     },
     'sync-dlg': function () { syncDlg(); },
@@ -2068,8 +2475,72 @@ td.act{text-align:right;white-space:nowrap}
     'pick-dest': function () { destDlg(); },
     'dest-set': function (el) { cfg.dest = el.getAttribute('data-d'); saveCfg(); closeDlg(); renderTab(); },
     'kb': function () { cfg.kb = !cfg.kb; saveCfg(); renderScan(); inp.blur(); setTimeout(focusScan, 60); },
-    'scan-cancel': function () { ui.slots = null; ui.pending = null; ui.result = null; ui.note = ''; renderScan(); },
-    'pend-yes': function () { if (!ui.pending) return; var p = ui.pending.plan; ui.pending = null; scanQ = scanQ.then(function () { return commitPlan(p); }); },
+    'scan-cancel': function () { ui.slots = null; ui.pending = null; ui.verify = null; ui.result = null; ui.note = ''; renderScan(); },
+    'pend-yes': function () {
+      if (!ui.pending) return; var p = ui.pending.plan, pid = ui.pending.pid; ui.pending = null;
+      if (p.status === 'verify') { startVerify(p, pid); renderScan(); return; }
+      scanQ = scanQ.then(function () { return commitPlan(p); });
+    },
+    'ver-lost': function (el) {
+      var v = ui.verify; if (!v) return;
+      var p = el.getAttribute('data-p');
+      v.items.forEach(function (it) { if (it.p === p && it.state === 'pending') it.state = 'lost'; });
+      feedback('warn');
+      if (v.items.every(function (x) { return x.state !== 'pending'; })) scanQ = scanQ.then(verifyCommit); else renderScan();
+    },
+    'ord-open': function (el) { ui.order = el.getAttribute('data-id'); ui.orderObj = orderById(ui.order); ui.mode = 'PICK'; ui.slots = null; ui.pending = null; ui.verify = null; ui.result = null; showTab('scan'); },
+    'ord-exit': function () { ui.order = null; ui.orderObj = null; ui.mode = cfg.mode === 'PICK' ? 'IN' : (cfg.mode || 'IN'); ui.result = null; showTab('orders'); },
+    'ord-miss': function (el) {
+      var o = orderById(ui.order), p = el.getAttribute('data-p'); if (!o) return;
+      ask('Marchezi paletul ca negăsit?', 'Paletul ' + p + ' rămâne în stoc, iar în comandă apare ca negăsit. Dacă îl găsești ulterior, îl poți scana oricând.', 'Negăsit', true).then(function (yes) {
+        if (!yes) return;
+        var cur = S.st.stock.get(p);
+        addEvents([{ type: 'PICKMISS', p: p, wh: o.wh, loc: cur ? cur.loc : '', ord: o.id, ordNo: o.no, note: 'Negăsit la comanda ' + o.no }], 'scan').then(function () {
+          ui.result = { kind: 'warn', msg: 'Paletul ' + p + ' a fost marcat negăsit.' }; feedback('warn'); orderMaybeDone(o); renderScan();
+        });
+      });
+    },
+    'tpl-ord': function () { exportTable('sablon-comanda', [{ name: 'Comanda', aoa: C.orderTemplateAOA() }], 'xlsx'); },
+    'ord-create': function () {
+      if (!oimp || !sync.remote || !sync.user) return;
+      var now = Date.now(), list = oimp.orders, i = 0, made = 0;
+      var next = function () {
+        if (i >= list.length) { closeDlg(); renderTab(); toast(plural(made, 'comandă creată', 'comenzi create') + '.'); return; }
+        var o = list[i], id = C.makeId(cfg.devId, now + i); i++;
+        var doc = { no: o.no, dest: o.dest || '', wh: o.wh, items: o.items, devs: [], status: 'open', created: now + (i - 1), by: cfg.devName || cfg.devId };
+        sync.remote.orderCreate(id, doc).then(function () { made++; doc.id = id; if (!orderById(id)) ord.list.push(doc); next(); })
+          .catch(function (e) { closeDlg(); toast('Crearea comenzii a eșuat: ' + fsMsg(e)); renderTab(); });
+      };
+      next();
+    },
+    'ord-detail': function (el) { orderDetailDlg(el.getAttribute('data-id')); },
+    'x-order': function (el) {
+      var o = orderById(el.getAttribute('data-id')); if (!o) return;
+      var pr = orderProg(o), rows = [['Comanda', 'Destinatie', 'Depozit', 'Palet', 'Locatie', 'Stare', 'Data', 'Dispozitiv']];
+      pr.items.forEach(function (it) { rows.push([o.no, o.dest || '', o.wh, it.p, it.loc || it.plannedLoc, it.state === 'picked' ? 'preluat' : it.state === 'missing' ? 'negasit' : 'de luat', it.ev ? { d: it.ev.ts } : '', it.ev ? it.ev.dev || '' : '']); });
+      exportTable('comanda-' + C.fold(o.no), [{ name: 'Comanda', aoa: rows }], 'xlsx');
+    },
+    'ord-assign': function (el) { orderAssignDlg(el.getAttribute('data-id')); },
+    'ord-assign-go': function (el) {
+      var o = orderById(el.getAttribute('data-id')); if (!o) return;
+      var devs = Array.prototype.map.call($('dlg').querySelectorAll('.asg:checked'), function (x) { return x.value; });
+      o.devs = devs;
+      sync.remote.orderUpdate(o.id, { devs: devs }).then(function () { closeDlg(); renderTab(); toast('Alocare salvată.'); }).catch(function (e) { toast('Nu am putut salva: ' + fsMsg(e)); });
+    },
+    'ord-close': function (el) {
+      var o = orderById(el.getAttribute('data-id')); if (!o) return;
+      var pr = orderProg(o);
+      ask('Închizi comanda ' + o.no + '?', (pr.pending ? plural(pr.pending, 'palet nu a fost preluat', 'paleți nu au fost preluați') + '. ' : '') + 'Comanda dispare de pe scannere. O poți redeschide oricând.', 'Închide comanda', !!pr.pending).then(function (yes) {
+        if (!yes) return;
+        o.status = 'closed';
+        sync.remote.orderUpdate(o.id, { status: 'closed', closedAt: Date.now() }).then(function () { renderTab(); }).catch(function (e) { o.status = 'open'; toast(fsMsg(e)); });
+      });
+    },
+    'ord-reopen': function (el) {
+      var o = orderById(el.getAttribute('data-id')); if (!o) return;
+      o.status = 'open';
+      sync.remote.orderUpdate(o.id, { status: 'open' }).then(function () { renderTab(); }).catch(function (e) { toast(fsMsg(e)); });
+    },
     'pend-no': function () { ui.pending = null; ui.slots = null; ui.note = ''; ui.result = { kind: 'warn', msg: 'Nu s-a înregistrat nimic.' }; renderScan(); },
     'out-zero': function () { ui.outCount = 0; renderScan(); },
     'undo': function () {
@@ -2096,7 +2567,7 @@ td.act{text-align:right;white-space:nowrap}
       exportTable('raport-stoc', [
         { name: 'Stoc', aoa: C.stockAOA(C.stockList(S.st), Date.now()) },
         { name: 'Miscari', aoa: C.movesAOA(S.events.slice().reverse(), S.st, S.byId) },
-        { name: 'Locatii', aoa: C.locsAOA(C.locationList(S.st)) }], 'xlsx');
+        { name: 'Locatii', aoa: C.locsAOA(C.locationList(S.st, groundFn)) }], 'xlsx');
     },
     'tpl': function () { exportTable('sablon-import-miscari', [{ name: 'Miscari', aoa: C.templateAOA() }], 'xlsx'); },
     'void': function (el) {
@@ -2138,7 +2609,7 @@ td.act{text-align:right;white-space:nowrap}
       if (($('wipeTxt').value || '').trim().toUpperCase() !== 'STERGE') { toast('Scrie STERGE în câmp ca să confirmi.'); return; }
       Store.clear().then(function () {
         var id = cfg.devId; cfg = defaults(); cfg.devId = id;
-        S.events = []; S.locs = []; ui.slots = null; ui.pending = null; ui.result = null; ui.outCount = 0; ui.whSeen = ''; followWh();
+        S.events = []; S.locs = []; ord.list = []; ui.slots = null; ui.pending = null; ui.verify = null; ui.order = null; ui.mode = 'IN'; ui.result = null; ui.outCount = 0; ui.whSeen = ''; followWh();
         rebuild(); saveCfg(); notifyTabs(); closeDlg(); showTab('scan'); whDlg(true);
         if (sync.user) syncStart();
       });
@@ -2152,7 +2623,7 @@ td.act{text-align:right;white-space:nowrap}
         if (el.hasAttribute('data-act')) { var f = A[el.getAttribute('data-act')]; if (f) f(el, ev); }
         else if (el.hasAttribute('data-tab')) showTab(el.getAttribute('data-tab'));
         else if (el.hasAttribute('data-mode')) {
-          ui.mode = cfg.mode = el.getAttribute('data-mode'); ui.slots = null; ui.pending = null; ui.result = null; ui.note = '';
+          ui.mode = cfg.mode = el.getAttribute('data-mode'); ui.slots = null; ui.pending = null; ui.verify = null; ui.order = null; ui.result = null; ui.note = '';
           saveCfg(); renderScan();
         }
       }
@@ -2197,9 +2668,14 @@ td.act{text-align:right;white-space:nowrap}
         if (el.type === 'checkbox') cfg[s] = el.checked;
         else if (el.type === 'radio') { if (el.checked) cfg[s] = el.value; }
         else cfg[s] = s === 'devName' ? el.value.trim() : el.value;
-        if (s === 'wh') { cfg.setup = true; ui.slots = null; ui.pending = null; ui.result = null; ui.whSeen = cfg.wh; followWh(); }
+        if (s === 'wh') { cfg.setup = true; ui.slots = null; ui.pending = null; ui.result = null; ui.whSeen = cfg.wh; followWh(); ordersListen(); }
+        if (s === 'devName') deviceAnnounce();
         saveCfg(); renderChrome();
         if (ev.type === 'change' && (s === 'wh' || s === 'dest')) renderSettings();
+      } else if (el.getAttribute && el.getAttribute('data-g')) {
+        var gw = el.getAttribute('data-g'), gv = el.value.trim().toUpperCase();
+        if (gv) cfg.ground[gw] = gv; else delete cfg.ground[gw];
+        cfg.groundDirty = true; saveCfg(); if (ev.type === 'change') pushMeta();
       } else if (el.id === 'impOnlyBad' && imp) { imp.onlyBad = el.checked; importPreview(); }
     };
     document.addEventListener('input', filt);
@@ -2208,11 +2684,12 @@ td.act{text-align:right;white-space:nowrap}
       if (el.type === 'file') {
         if (!el.files || !el.files.length) return;
         if (el.id === 'impFile') startImport(el.files[0]);
+        else if (el.id === 'ordFile') startOrderImport(el.files[0]);
         else if (el.id === 'locFile') startLocImport(el.files[0]);
         else if (el.id === 'syncFile') syncIn(el.files);
         return;
       }
-      if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio' || el.type === 'date') filt(ev);
+      if (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio' || el.type === 'date' || (el.getAttribute && el.getAttribute('data-g'))) filt(ev);
     });
     $('dlg').addEventListener('keydown', function (ev) {
       if (ev.key !== 'Enter') return;
