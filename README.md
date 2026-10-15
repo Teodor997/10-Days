@@ -1,4 +1,4 @@
-# 10-Days — versiunea 1.2.0
+# 10-Days — versiunea 1.2.1
 
 Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Scanarea merge mereu, cu sau fără internet. Cât timp fișierul `config.js` nu conține o configurație Firebase, aplicația lucrează doar local și datele se adună prin fișiere de transfer. Cu Firebase configurat, mișcările ajung în timp real pe toate dispozitivele conectate (secțiunea 9).
 
@@ -93,7 +93,7 @@ Pe scanner, pagina **Comenzi** arată comenzile deschise alocate lui (sau nealoc
 - aplicația propune paletul următor în ordinea locațiilor; se poate scana orice palet din comandă, în orice ordine;
 - scanarea paletului înseamnă **ieșire imediată** către destinația comenzii;
 - un palet din afara comenzii este respins; scanarea unei locații spune ce paleți din comandă sunt acolo;
-- **Negăsit** marchează paletul; rămâne în stoc, iar comanda se poate termina fără el. Dacă e găsit ulterior, se scanează și devine preluat;
+- **Negăsit** marchează paletul în comandă și îl mută pe locația **Lost** (rămâne în stoc, ca la parter); comanda se poate termina fără el. Dacă e găsit ulterior, se scanează în comandă și devine preluat;
 - când toți paleții sunt preluați sau negăsiți, comanda apare „terminată" pe PC și dispare de pe scannere.
 
 Scanarea într-o comandă merge și fără semnal, dacă comanda a fost deja primită pe scanner; ieșirile pleacă la revenirea conexiunii, iar progresul de pe PC se actualizează atunci.

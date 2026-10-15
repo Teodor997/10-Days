@@ -1186,7 +1186,7 @@ td.act{text-align:right;white-space:nowrap}
 (function () {
   'use strict';
   var C = window.StocCore;
-  var VERSION = '1.2.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var VERSION = '1.2.1', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
   var CONF = window.STOC_CONFIG || {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -2492,11 +2492,12 @@ td.act{text-align:right;white-space:nowrap}
     'ord-exit': function () { ui.order = null; ui.orderObj = null; ui.mode = cfg.mode === 'PICK' ? 'IN' : (cfg.mode || 'IN'); ui.result = null; showTab('orders'); },
     'ord-miss': function (el) {
       var o = orderById(ui.order), p = el.getAttribute('data-p'); if (!o) return;
-      ask('Marchezi paletul ca negăsit?', 'Paletul ' + p + ' rămâne în stoc, iar în comandă apare ca negăsit. Dacă îl găsești ulterior, îl poți scana oricând.', 'Negăsit', true).then(function (yes) {
+      ask('Marchezi paletul ca negăsit?', 'Paletul ' + p + ' trece pe locația Lost, iar în comandă apare ca negăsit. Dacă îl găsești ulterior, îl poți scana oricând în comandă.', 'Negăsit', true).then(function (yes) {
         if (!yes) return;
-        var cur = S.st.stock.get(p);
-        addEvents([{ type: 'PICKMISS', p: p, wh: o.wh, loc: cur ? cur.loc : '', ord: o.id, ordNo: o.no, note: 'Negăsit la comanda ' + o.no }], 'scan').then(function () {
-          ui.result = { kind: 'warn', msg: 'Paletul ' + p + ' a fost marcat negăsit.' }; feedback('warn'); orderMaybeDone(o); renderScan();
+        var cur = S.st.stock.get(p), specs = [{ type: 'PICKMISS', p: p, wh: o.wh, loc: cur ? cur.loc : '', ord: o.id, ordNo: o.no, note: 'Negăsit la comanda ' + o.no }];
+        if (cur && cur.loc !== C.LOST) specs.push({ type: 'MOVE', p: p, wh: cur.wh, loc: C.LOST, fromWh: cur.wh, fromLoc: cur.loc, note: 'Negăsit la comanda ' + o.no + ' pe ' + (cur.loc || 'fără locație') });
+        addEvents(specs, 'scan').then(function () {
+          ui.result = { kind: 'warn', msg: 'Paletul ' + p + ' a fost marcat negăsit și mutat pe Lost.' }; feedback('warn'); orderMaybeDone(o); renderScan();
         });
       });
     },
