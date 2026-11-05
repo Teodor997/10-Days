@@ -1,4 +1,4 @@
-# 10-Days — versiunea 1.2.1
+# 10-Days — versiunea 1.3.0
 
 Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Scanarea merge mereu, cu sau fără internet. Cât timp fișierul `config.js` nu conține o configurație Firebase, aplicația lucrează doar local și datele se adună prin fișiere de transfer. Cu Firebase configurat, mișcările ajung în timp real pe toate dispozitivele conectate (secțiunea 9).
 
@@ -14,6 +14,7 @@ Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scan
 | `firestore.rules` | regulile de acces care se lipesc în consola Firebase |
 | `sablon-import-miscari.xlsx` | model pentru importul de mișcări și de stoc inițial |
 | `sablon-comanda.xlsx` | model pentru încărcarea unei comenzi de picking |
+| `sablon-date-paleti.xlsx` | model pentru încărcarea datelor de palet (articol, HU, BBD, lot) |
 
 ## 1. Publicare (o singură dată)
 
@@ -96,6 +97,8 @@ Pe scanner, pagina **Comenzi** arată comenzile deschise alocate lui (sau nealoc
 - **Negăsit** marchează paletul în comandă și îl mută pe locația **Lost** (rămâne în stoc, ca la parter); comanda se poate termina fără el. Dacă e găsit ulterior, se scanează în comandă și devine preluat;
 - când toți paleții sunt preluați sau negăsiți, comanda apare „terminată" pe PC și dispare de pe scannere.
 
+Ceasul dispozitivelor contează: mișcările se ordonează după dată și oră. Setează pe scannere ora automată (Setări Android → Sistem → Data și ora). Dacă un dispozitiv are totuși ceasul decalat, aplicația observă la prima trimitere pe server și corectează automat ora mișcărilor următoare, cu avertizare în Setări.
+
 Scanarea într-o comandă merge și fără semnal, dacă comanda a fost deja primită pe scanner; ieșirile pleacă la revenirea conexiunii, iar progresul de pe PC se actualizează atunci.
 
 ## 5. Pe PC
@@ -104,6 +107,7 @@ Scanarea într-o comandă merge și fără semnal, dacă comanda a fost deja pri
 - **Stoc**: paleții, cu filtrare și căutare; vederea „Locații" arată locațiile libere, ocupate și conflictele. Export Excel sau CSV pentru ce este filtrat.
 - **Mișcări**: jurnalul, cu filtre pe perioadă, tip și depozit, export și anulare. Un transfer între depozite apare la amândouă.
 - **Date → Import mișcări**: încarcă intrări, ieșiri și mutări din Excel sau CSV. Stocul inițial se încarcă la fel (un rând pe palet). Înainte de import vezi fiecare rând cu starea lui.
+- **Date → Date paleți**: încarcă un fișier cu `SO-ID` (sau `SSCC`), `Article no.`, `HU`, `BBD`, `Batch`. Datele se leagă de paleții aflați în stoc (paleții care nu sunt în stoc sunt săriți) și apar în Stoc, în Detalii palet, la Verifică pe scanner și în exporturi. Un fișier reîncărcat rescrie doar valorile schimbate; ultima încărcare câștigă. Căutarea din Stoc merge și după articol sau lot.
 - **Date → Raport complet**: un fișier Excel cu trei foi (Stoc, Mișcări, Locații).
 - **Date → Lista de locații** (opțional): dacă încarci locațiile fiecărui depozit, raportul arată și locațiile libere nefolosite încă.
 

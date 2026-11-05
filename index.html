@@ -270,6 +270,11 @@ td.act{text-align:right;white-space:nowrap}
 .orow b{font-family:var(--f-ui);font-size:17px}
 .orow .c{grid-column:1/-1;color:var(--muted);font-family:var(--f-ui);font-size:12.5px}
 
+/* ---- date palet (articol, HU, BBD, lot) ---- */
+.attrs{display:flex;flex-wrap:wrap;margin:6px -4px 2px}
+.attrs span{margin:4px;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:3px 8px;font-size:13.5px;font-variant-numeric:tabular-nums}
+.attrs small{display:block;font-family:var(--f-ui);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -327,7 +332,7 @@ td.act{text-align:right;white-space:nowrap}
   'use strict';
 
   var GS = '\x1d';
-  var TYPE_LABEL = { IN: 'Intrare', OUT: 'Ieșire', MOVE: 'Mutare', UNLOC: 'Fără locație', VOID: 'Anulare', PICKMISS: 'Negăsit la comandă' };
+  var TYPE_LABEL = { IN: 'Intrare', OUT: 'Ieșire', MOVE: 'Mutare', UNLOC: 'Fără locație', VOID: 'Anulare', PICKMISS: 'Negăsit la comandă', ATTR: 'Date palet' };
   var LOST = 'LOST';
   var SRC_LABEL = { scan: 'Scanare', manual: 'Manual', import: 'Import', demo: 'Demo' };
 
@@ -460,7 +465,7 @@ td.act{text-align:right;white-space:nowrap}
     return evs;
   }
   function newState() {
-    return { stock: new Map(), byLoc: new Map(), lastEv: new Map(), voided: new Set(), locNames: new Set(), locKeys: new Set(), maxTs: 0 };
+    return { stock: new Map(), byLoc: new Map(), lastEv: new Map(), voided: new Set(), locNames: new Set(), locKeys: new Set(), attrs: new Map(), maxTs: 0 };
   }
   function addLoc(st, wh, loc, p) {
     if (!loc) return;
@@ -476,6 +481,7 @@ td.act{text-align:right;white-space:nowrap}
   function noteLoc(st, wh, loc) { if (loc) { st.locNames.add(loc); st.locKeys.add(lkey(wh, loc)); } }
   function applyEvent(st, e) {
     if (e.ts > st.maxTs) st.maxTs = e.ts;
+    if (e.type === 'ATTR') { if (e.p) st.attrs.set(e.p, { art: e.art || '', hu: e.hu || '', bbd: e.bbd || '', batch: e.batch || '' }); return; }
     if (e.type === 'VOID' || e.type === 'PICKMISS' || !e.p) return;
     var cur = st.stock.get(e.p);
     if (e.type === 'IN' || e.type === 'MOVE') {
@@ -716,16 +722,18 @@ td.act{text-align:right;white-space:nowrap}
   function cellText(c) {
     if (c == null) return '';
     if (typeof c === 'string') return c.trim();
+    if (typeof c === 'number') return String(c);
     if (c.t === 'n') return c.w != null && !/e\+?\d/i.test(String(c.w)) && String(c.w).indexOf('#') < 0 ? String(c.w).trim() : String(c.v);
     return String(c.v == null ? '' : c.v).trim();
   }
-  function findHeader(rows, need) {
+  function findHeader(rows, need, head) {
+    head = head || HEAD;
     for (var r = 0; r < Math.min(rows.length, 15); r++) {
       var cols = {}, row = rows[r] || [];
       for (var c = 0; c < row.length; c++) {
         var f = fold(cellText(row[c]));
         if (!f) continue;
-        for (var k in HEAD) if (cols[k] == null && HEAD[k].indexOf(f) >= 0) { cols[k] = c; break; }
+        for (var k in head) if (cols[k] == null && head[k].indexOf(f) >= 0) { cols[k] = c; break; }
       }
       if (cols[need] != null) return { row: r, cols: cols };
     }
@@ -921,9 +929,12 @@ td.act{text-align:right;white-space:nowrap}
       var cur = st.stock.get(it.p), evs = idx.get(it.p) || [], state = 'pending', ev = null;
       for (var i = 0; i < evs.length; i++) {
         var e = evs[i];
-        if (e.ts < (o.created || 0) - 60000) continue;
+        if (e.ord === o.id) { // mișcare făcută din această comandă: contează indiferent de ceasul dispozitivului
+          if (e.type === 'OUT') { state = 'picked'; ev = e; break; }
+          state = 'missing'; ev = e; continue;
+        }
+        if (e.ord || e.ts < (o.created || 0) - 60000) continue;
         if (e.type === 'OUT') { state = 'picked'; ev = e; break; }
-        if (e.type === 'PICKMISS' && e.ord === o.id) { state = 'missing'; ev = e; }
       }
       if (state === 'picked') nP++; else if (state === 'missing') nM++;
       items.push({ p: it.p, loc: cur ? cur.loc : (state === 'pending' ? '' : it.loc || ''), inStock: !!cur, state: state, ev: ev, plannedLoc: it.loc || '' });
@@ -970,6 +981,7 @@ td.act{text-align:right;white-space:nowrap}
     if (e.type === 'MOVE') return 'din ' + locTxt(e.fromWh || e.wh, e.fromLoc);
     if (e.type === 'OUT') return (e.dest ? 'către ' + e.dest : '') + (e.loc ? (e.dest ? ', ' : '') + 'din ' + e.loc : '') + (e.ordNo ? ' · comanda ' + e.ordNo : '');
     if (e.type === 'PICKMISS') return 'comanda ' + (e.ordNo || '') + (e.loc ? ', locația ' + e.loc : '');
+    if (e.type === 'ATTR') return [e.art && 'articol ' + e.art, e.hu && 'HU ' + e.hu, e.bbd && 'BBD ' + e.bbd, e.batch && 'lot ' + e.batch].filter(Boolean).join(' · ');
     if (e.type === 'VOID') { var t = byId && byId.get(e.ref); return t ? 'anulează: ' + TYPE_LABEL[t.type] + ' ' + (t.p || '') + ' (' + fmtDT(t.ts) + ')' : 'anulează o mișcare'; }
     return '';
   }
@@ -989,12 +1001,68 @@ td.act{text-align:right;white-space:nowrap}
     out.sort(function (x, y) { return x.wh < y.wh ? -1 : x.wh > y.wh ? 1 : x.loc < y.loc ? -1 : x.loc > y.loc ? 1 : 0; });
     return out;
   }
-  function stockAOA(list, now) {
-    var rows = [['Palet', 'Depozit', 'Locatie', 'Intrat la', 'Ultima miscare', 'Zile in stoc', 'Lot', 'Expira']];
+  /* datele paletului: cele încărcate din fișier au prioritate; altfel ce s-a citit din eticheta GS1 */
+  function attrOf(st, s) {
+    var a = st && st.attrs.get(s.p), g = s.gs1 || {};
+    return { art: a && a.art || g.gtin || '', hu: a && a.hu || g.qty || '', bbd: a && a.bbd || g.exp || '', batch: a && a.batch || g.lot || '' };
+  }
+  function stockAOA(list, now, st) {
+    var rows = [['Palet', 'Depozit', 'Locatie', 'Articol', 'HU', 'BBD', 'Lot', 'Intrat la', 'Ultima miscare', 'Zile in stoc']];
     list.forEach(function (s) {
-      rows.push([s.p, s.wh, s.loc, { d: s.inTs }, { d: s.lastTs }, Math.max(0, Math.floor((now - s.inTs) / 86400000)), s.gs1 && s.gs1.lot || '', s.gs1 && s.gs1.exp || '']);
+      var a = attrOf(st, s);
+      rows.push([s.p, s.wh, s.loc, a.art, /^\d+$/.test(a.hu) ? +a.hu : a.hu, a.bbd, a.batch, { d: s.inTs }, { d: s.lastTs }, Math.max(0, Math.floor((now - s.inTs) / 86400000))]);
     });
     return rows;
+  }
+  /* ---------- import date paleți (articol, HU, BBD, lot) ---------- */
+  var ATTR_HEAD = {
+    palet: ['soid', 'so', 'sscc', 'palet', 'pallet', 'eticheta', 'etichetapalet', 'nrpalet', 'codpalet', 'lpn', 'handlingunit', 'ssccpalet', 'paletid'],
+    art: ['articleno', 'article', 'articol', 'nrarticol', 'codarticol', 'material', 'materialno', 'sku', 'item', 'itemno', 'produs', 'codprodus', 'articlenumber'],
+    hu: ['hu', 'buc', 'bucati', 'qty', 'quantity', 'cantitate', 'pcs', 'pieces', 'cant', 'cutii', 'baxuri'],
+    bbd: ['bbd', 'expira', 'dataexpirare', 'bestbefore', 'bestbeforedate', 'exp', 'expiry', 'expirydate', 'dlc', 'valabilitate', 'dataexpirarii'],
+    batch: ['batch', 'lot', 'charge', 'sarja', 'lotno', 'batchno', 'nrlot']
+  };
+  function attrTemplateAOA() {
+    return [['SO-ID', 'Article no.', 'HU', 'BBD', 'Batch'], ['359400000000000017', '510240', 88, '29.09.2027', 'L290926'], ['359400000000000024', '1000030225', 63, '30.05.2027', 'L300826'], ['', '', '', '', 'exemplu — șterge rândurile; se păstrează doar paleții aflați în stoc']];
+  }
+  function cellDateText(c) {
+    if (c == null || c === '') return '';
+    if (typeof c === 'object' && c.t === 'n' && isFinite(c.v)) return c.v > 20000 && c.v < 80000 ? fmtD(fromExcelSerial(c.v)) : String(c.v);
+    if (typeof c === 'object' && c.t === 'd' && c.v instanceof Date) return fmtD(c.v.getTime());
+    var t = cellText(c), pd = parseDateText(t);
+    return pd ? fmtD(pd.ts) : t;
+  }
+  /* rows → {items:[{line, p, attr, status: ok|same|nostock|err, msg}], counts, specs:[evenimente ATTR de salvat]} */
+  function buildAttrImport(rows, st) {
+    var hd = findHeader(rows, 'palet', ATTR_HEAD);
+    if (!hd) return { error: 'Nu găsesc coloana cu paleții. Antetul trebuie să conțină „SO-ID", „SSCC" sau „Palet".' };
+    var cols = hd.cols, items = [], specs = [], counts = { ok: 0, same: 0, nostock: 0, err: 0 }, seen = {};
+    if (cols.art == null && cols.hu == null && cols.bbd == null && cols.batch == null) return { error: 'Nu găsesc nicio coloană cu date: Article no., HU, BBD sau Batch.' };
+    for (var r = hd.row + 1; r < rows.length; r++) {
+      var row = rows[r] || [], get = function (k) { return cols[k] != null ? row[cols[k]] : null; };
+      if (!row.some(function (x) { return cellText(x) !== ''; })) continue;
+      var it = { line: r + 1, p: '', attr: null, status: 'ok', msg: '' }, pc = palletFromCell(get('palet'));
+      if (pc.err) { it.status = 'err'; it.msg = pc.err; }
+      else if (!pc.parsed) { it.status = 'err'; it.msg = 'Lipsește codul paletului.'; }
+      else {
+        it.p = pc.parsed.id;
+        var cur = st.stock.get(it.p);
+        var hu = get('hu'), huT = typeof hu === 'number' ? String(hu) : hu && typeof hu === 'object' && hu.t === 'n' ? String(hu.v) : cellText(hu);
+        it.attr = { art: cellText(get('art')), hu: huT, bbd: cellDateText(get('bbd')), batch: cellText(get('batch')) };
+        if (!cur) { it.status = 'nostock'; it.msg = 'Nu figurează în stoc.'; }
+        else if (seen[it.p]) { it.status = 'err'; it.msg = 'Paletul apare de două ori în fișier.'; }
+        else {
+          seen[it.p] = 1;
+          var old = st.attrs.get(it.p);
+          if (old && old.art === it.attr.art && old.hu === it.attr.hu && old.bbd === it.attr.bbd && old.batch === it.attr.batch) { it.status = 'same'; it.msg = 'Date identice cu cele existente.'; }
+          else specs.push({ type: 'ATTR', p: it.p, wh: cur.wh, art: it.attr.art, hu: it.attr.hu, bbd: it.attr.bbd, batch: it.attr.batch });
+        }
+      }
+      counts[it.status]++;
+      items.push(it);
+    }
+    if (!items.length) return { error: 'Am găsit antetul, dar niciun rând cu date sub el.' };
+    return { items: items, counts: counts, specs: specs };
   }
   function movesAOA(list, st, byId) {
     var rows = [['Data si ora', 'Tip', 'Palet', 'Depozit', 'Locatie', 'Detalii', 'Sursa', 'Dispozitiv', 'Observatii', 'Stare']];
@@ -1010,7 +1078,7 @@ td.act{text-align:right;white-space:nowrap}
   }
 
   /* ---------- transfer între dispozitive ---------- */
-  var EV_TYPES = { IN: 1, OUT: 1, MOVE: 1, UNLOC: 1, VOID: 1, PICKMISS: 1 };
+  var EV_TYPES = { IN: 1, OUT: 1, MOVE: 1, UNLOC: 1, VOID: 1, PICKMISS: 1, ATTR: 1 };
   function validEvent(e) {
     if (!e || typeof e.id !== 'string' || !e.id || typeof e.ts !== 'number' || !isFinite(e.ts) || !EV_TYPES[e.type]) return false;
     if (e.type === 'VOID') return typeof e.ref === 'string' && !!e.ref;
@@ -1067,7 +1135,7 @@ td.act{text-align:right;white-space:nowrap}
 
   return {
     GS: GS, TYPE_LABEL: TYPE_LABEL, SRC_LABEL: SRC_LABEL, LOST: LOST,
-    isGround: isGround, verifyEvents: verifyEvents, orderTemplateAOA: orderTemplateAOA, buildOrderImport: buildOrderImport, pickIndex: pickIndex, orderProgress: orderProgress, pickScan: pickScan,
+    isGround: isGround, verifyEvents: verifyEvents, attrOf: attrOf, attrTemplateAOA: attrTemplateAOA, buildAttrImport: buildAttrImport, orderTemplateAOA: orderTemplateAOA, buildOrderImport: buildOrderImport, pickIndex: pickIndex, orderProgress: orderProgress, pickScan: pickScan,
     pad: pad, fmtD: fmtD, fmtT: fmtT, fmtDT: fmtDT, stamp: stamp, lkey: lkey, fold: fold, normLoc: normLoc,
     parseGS1: parseGS1, parseScan: parseScan,
     sortEvents: sortEvents, computeState: computeState, applyEvent: applyEvent, occupants: occupants, classify: classify,
@@ -1186,7 +1254,7 @@ td.act{text-align:right;white-space:nowrap}
 (function () {
   'use strict';
   var C = window.StocCore;
-  var VERSION = '1.2.1', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
+  var VERSION = '1.3.0', BUILD = 'pwa', XLSX_URL = 'vendor/xlsx.full.min.js';
   var CONF = window.STOC_CONFIG || {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -1266,7 +1334,7 @@ td.act{text-align:right;white-space:nowrap}
   function defaults() {
     return { devId: rnd(4), devName: '', wh: '', warehouses: ['Orkla', 'Douglas'], dests: ['TC'], dest: 'TC', sound: true, vibrate: true, auto: true, kb: false, lastExport: 0, unsent: 0, dirtySince: 0, setup: false, mode: 'IN',
       cursor: 0, bucket: null, metaAdd: { wh: [], dest: [] }, metaDel: { wh: [], dest: [] }, metaInit: false, syncAsked: false,
-      ground: { Orkla: '-0', Douglas: '1' }, groundDirty: false };
+      ground: { Orkla: '-0', Douglas: '1' }, groundDirty: false, skew: 0, skewAt: 0 };
   }
   var cfg = defaults();
   var S = { events: [], st: C.computeState([], []), byId: new Map(), locs: [] };
@@ -1303,8 +1371,13 @@ td.act{text-align:right;white-space:nowrap}
   function notifyTabs() { try { if (bc) bc.postMessage('changed'); } catch (e) { } }
   function isOwn(e) { return e.id.indexOf(cfg.devId + '-') === 0; }
 
+  function nowSrv() { return Date.now() + (cfg.skew || 0); } // ora dispozitivului, corectată cu decalajul față de server
+  function skewText(ms) {
+    var a = Math.round(Math.abs(ms) / 60000), h = Math.floor(a / 60), m = a % 60;
+    return (h ? h + ' h ' : '') + (m || !h ? m + ' min ' : '') + (ms > 0 ? 'în urmă' : 'înainte');
+  }
   function addEvents(specs, src, group) {
-    var now = Math.max(Date.now(), lastTs + 1);
+    var now = Math.max(nowSrv(), lastTs + 1);
     var grp = group !== false && specs.length > 1 ? C.makeId(cfg.devId, now) : null;
     var evs = specs.map(function (s, i) {
       var e = {}, k;
@@ -1339,7 +1412,7 @@ td.act{text-align:right;white-space:nowrap}
 
   /* ================= sincronizare online ================= */
   var sync = { on: !!(CONF.firebase || window.__stocRemote) && BUILD === 'pwa', remote: null, user: false, authKnown: false, primed: false, live: false,
-    flushing: false, timer: null, retry: 0, err: '', lastOk: 0, npend: 0, unsub: null, unsubMeta: null };
+    flushing: false, timer: null, retry: 0, err: '', lastOk: 0, npend: 0, unsub: null, unsubMeta: null, sent: {}, skewToast: false };
   var syncQ = Promise.resolve();
   function countPending() { var n = 0; for (var i = 0; i < S.events.length; i++) { var e = S.events[i]; if (!e._s && e.src !== 'demo') n++; } sync.npend = n; return n; }
   function syncState() {
@@ -1437,7 +1510,23 @@ td.act{text-align:right;white-space:nowrap}
     ord.devSent = key;
     sync.remote.deviceSet(cfg.devId, { name: cfg.devName || ('Dispozitiv ' + cfg.devId), wh: cfg.wh || '', kind: isPC() ? 'pc' : 'scanner' }).catch(function () { ord.devSent = ''; });
   }
+  /* decalajul ceasului: ora serverului pe documentele noastre față de ora locală la care au fost trimise */
+  function checkSkew(docs) {
+    var found = false;
+    docs.forEach(function (d) {
+      if (d.pending || !d.u || !sync.sent[d.id]) return;
+      var skew = d.u - sync.sent[d.id];
+      delete sync.sent[d.id];
+      if (Math.abs(skew) < 120000) skew = 0; // sub 2 minute e doar întârzierea rețelei
+      if (skew !== (cfg.skew || 0)) { cfg.skew = skew; cfg.skewAt = Date.now(); saveCfg(); found = true; }
+    });
+    if (found && cfg.skew && !sync.skewToast) {
+      sync.skewToast = true;
+      toast('Ceasul acestui dispozitiv este cu ' + skewText(cfg.skew) + ' față de server. Ora mișcărilor se corectează automat; setează ora automată în Android.', null, null, 12000);
+    }
+  }
   function onRemoteDocs(docs, fromCache) {
+    checkSkew(docs);
     syncQ = syncQ.then(function () {
       var m = C.mergeRemote(S.byId, docs), store = m.fresh.concat(m.confirm);
       return (store.length ? Store.put(store) : Promise.resolve()).then(function () {
@@ -1476,6 +1565,7 @@ td.act{text-align:right;white-space:nowrap}
       }
       var w = plan.writes[i++];
       sync.remote.append(w.id, cfg.devId, w.events.map(C.cleanForUpload)).then(function () {
+        sync.sent[w.id] = Date.now();
         w.events.forEach(function (e) { e._s = 1; });
         cfg.bucket = w.bucketAfter; saveCfg();
         return Store.put(w.events);
@@ -1565,6 +1655,7 @@ td.act{text-align:right;white-space:nowrap}
       h += '<p>Stare: <b class="' + (st.c === 'ok' ? 'st-ok' : st.c === 'bad' ? 'st-err' : 'st-warn') + '">' + st.t + '</b></p>' +
         '<p>' + (sync.npend ? plural(sync.npend, 'mișcare așteaptă', 'mișcări așteaptă') + ' să fie trimise. Rămân salvate pe dispozitiv și pleacă singure când revine conexiunea.' : 'Toate mișcările de pe acest dispozitiv sunt pe server.') + '</p>' +
         (sync.lastOk ? '<p class="muted">Ultima legătură reușită cu serverul: ' + C.fmtDT(sync.lastOk) + '</p>' : '') +
+        (cfg.skew ? '<p class="st-warn">Ceasul dispozitivului este cu ' + skewText(cfg.skew) + ' față de server. Ora mișcărilor se corectează automat, dar setează ora automată în Android.</p>' : '') +
         (sync.err ? '<p class="st-err">' + esc(sync.err) + '</p>' : '') +
         '<div class="foot"><button type="button" class="btn danger" data-act="sync-off">Deconectează</button><button type="button" class="btn" data-act="sync-now">Trimite acum</button><button type="button" class="btn pri" data-act="dlg-x">Închide</button></div>';
     }
@@ -1792,7 +1883,7 @@ td.act{text-align:right;white-space:nowrap}
       info.other.forEach(function (o) { h += '<div class="row"><div class="muted">Aceeași locație în ' + esc(o.wh) + ': ' + o.pallets.map(esc).join(', ') + '</div></div>'; });
     } else if (info.what === 'pallet') {
       h += '<div class="muted">Palet</div><div class="big-code">' + esc(info.id) + '</div>';
-      if (info.cur) h += '<span class="pill big occ">În stoc</span><div class="row"><div><b>' + esc(info.cur.wh) + ' / ' + esc(info.cur.loc || 'fără locație') + '</b><div class="muted">intrat la ' + C.fmtDT(info.cur.inTs) + '</div></div>';
+      if (info.cur) h += '<span class="pill big occ">În stoc</span>' + attrH(info.id) + '<div class="row"><div><b>' + esc(info.cur.wh) + ' / ' + esc(info.cur.loc || 'fără locație') + '</b><div class="muted">intrat la ' + C.fmtDT(info.cur.inTs) + '</div></div>';
       else h += '<span class="pill big conf">Nu este în stoc</span><div class="row"><div class="muted">' + (info.last ? 'Ultima mișcare: ' + esc(C.TYPE_LABEL[info.last.type]) + ', ' + C.fmtDT(info.last.ts) : 'Nu a fost înregistrat niciodată pe acest dispozitiv.') + '</div>';
       h += '<button type="button" class="btn sm" data-act="pal" data-p="' + esc(info.id) + '">Detalii</button></div>';
     } else {
@@ -1865,7 +1956,7 @@ td.act{text-align:right;white-space:nowrap}
           (it.state === 'pending' ? '<button type="button" class="btn sm" data-act="ord-miss" data-p="' + esc(it.p) + '">Negăsit</button>' : '<span></span>') + '</div>';
       }).join('');
     } else {
-      for (i = S.events.length - 1; i >= 0 && rec.length < 6; i--) { var e = S.events[i]; if (e.type !== 'VOID' && e.src !== 'demo' && isOwn(e)) rec.push(e); }
+      for (i = S.events.length - 1; i >= 0 && rec.length < 6; i--) { var e = S.events[i]; if (e.type !== 'VOID' && e.type !== 'ATTR' && e.src !== 'demo' && isOwn(e)) rec.push(e); }
       $('recent').innerHTML = rec.length ? '<div class="sec-h">Ultimele mișcări de pe acest dispozitiv</div>' + rec.map(function (e) {
         return '<div class="rec' + (S.st.voided.has(e.id) ? ' void' : '') + '">' + pill(e.type) + '<div>' + codeH(e.p) + '<div class="w">' + esc(e.wh) + (e.loc ? ' / ' + esc(e.loc) : '') + (e.type === 'OUT' && e.dest ? ' → ' + esc(e.dest) : '') + '</div></div><span class="w nowrap">' + C.fmtT(e.ts) + '</span></div>';
       }).join('') : '';
@@ -1882,7 +1973,7 @@ td.act{text-align:right;white-space:nowrap}
       if (fs.wh && s.wh !== fs.wh) return false;
       if (fs.state === 'noloc' && s.loc) return false;
       if (fs.state === 'lost' && s.loc !== C.LOST) return false;
-      if (nd && s.p.indexOf(nd.id) < 0 && s.p.indexOf(nd.raw) < 0 && s.loc.indexOf(nd.raw) < 0) return false;
+      if (nd) { var a = C.attrOf(S.st, s); if (s.p.indexOf(nd.id) < 0 && s.p.indexOf(nd.raw) < 0 && s.loc.indexOf(nd.raw) < 0 && a.art.toUpperCase().indexOf(nd.raw) < 0 && a.batch.toUpperCase().indexOf(nd.raw) < 0) return false; }
       return true;
     });
   }
@@ -1924,7 +2015,7 @@ td.act{text-align:right;white-space:nowrap}
       $('tab-stock').innerHTML = h; return;
     }
     h += '<div class="bar"><div class="seg"><button type="button" data-act="sv" data-v="p" aria-pressed="' + (fs.view === 'p') + '">Paleți</button><button type="button" data-act="sv" data-v="l" aria-pressed="' + (fs.view === 'l') + '">Locații</button></div>' +
-      '<label class="fld grow"><span>Caută palet sau locație</span><input class="inp" id="fsQ" data-f="fs.q" type="search" value="' + esc(fs.q) + '" placeholder="scanează sau tastează" autocomplete="off"></label>' +
+      '<label class="fld grow"><span>Caută palet, locație, articol sau lot</span><input class="inp" id="fsQ" data-f="fs.q" type="search" value="' + esc(fs.q) + '" placeholder="scanează sau tastează" autocomplete="off"></label>' +
       '<button type="button" class="btn sm only-sm" data-act="flt" aria-expanded="' + !!ui.flt + '">' + (ui.flt ? 'Ascunde filtrele' : 'Filtre și export') + '</button><div class="more' + (ui.flt ? ' open' : '') + '">' +
       '<label class="fld"><span>Depozit</span><select class="inp" id="fsWh" data-f="fs.wh">' + whOpts(fs.wh, 'Toate') + '</select></label>' +
       '<label class="fld"><span>' + (fs.view === 'p' ? 'Arată' : 'Stare') + '</span><select class="inp" id="fsState" data-f="fs.state">' +
@@ -1943,7 +2034,8 @@ td.act{text-align:right;white-space:nowrap}
       list = fs.view === 'p' ? filteredStock() : filteredLocs();
       h = '<div class="tw">';
       if (fs.view === 'p') list.slice(0, fs.limit).forEach(function (s) {
-        h += '<button type="button" class="lrow" data-act="pal" data-p="' + esc(s.p) + '"><span>' + codeH(s.p) + '</span>' + (s.loc === C.LOST ? '<span class="pill VOID">Lost</span>' : s.loc ? '<b class="code">' + esc(s.loc) + '</b>' : '<span class="pill UNLOC">fără locație</span>') + '<span class="c">' + esc(s.wh) + ' · intrat la ' + C.fmtDT(s.inTs).slice(0, 16) + '</span></button>';
+        var at = C.attrOf(S.st, s), atT = [at.art && 'art. ' + at.art, at.hu && 'HU ' + at.hu, at.bbd && 'BBD ' + at.bbd, at.batch && 'lot ' + at.batch].filter(Boolean).join(' · ');
+        h += '<button type="button" class="lrow" data-act="pal" data-p="' + esc(s.p) + '"><span>' + codeH(s.p) + '</span>' + (s.loc === C.LOST ? '<span class="pill VOID">Lost</span>' : s.loc ? '<b class="code">' + esc(s.loc) + '</b>' : '<span class="pill UNLOC">fără locație</span>') + '<span class="c">' + esc(s.wh) + ' · intrat la ' + C.fmtDT(s.inTs).slice(0, 16) + (atT ? '<br>' + esc(atT) : '') + '</span></button>';
       });
       else list.slice(0, fs.limit).forEach(function (l) {
         h += '<div class="lrow"><b class="code">' + esc(l.loc) + '</b><span class="pill ' + (l.state === 'liberă' ? 'free' : l.state === 'ocupată' ? 'occ' : 'conf') + '">' + l.state + '</span><span class="c">' + esc(l.wh) + (l.pallets.length ? ' · ' : '') + l.pallets.map(function (p) { return '<button type="button" class="btn sm" data-act="pal" data-p="' + esc(p) + '">' + codeH(p) + '</button>'; }).join(' ') + '</span></div>';
@@ -1952,11 +2044,12 @@ td.act{text-align:right;white-space:nowrap}
       h += '</div>';
     } else if (fs.view === 'p') {
       list = filteredStock();
-      h = '<div class="tw"><table><thead><tr><th>Palet</th><th>Depozit</th><th>Locație</th><th class="hide-sm">Intrat la</th><th class="hide-sm">Ultima mișcare</th><th class="num hide-sm">Zile</th><th></th></tr></thead><tbody>';
+      h = '<div class="tw"><table><thead><tr><th>Palet</th><th>Depozit</th><th>Locație</th><th>Articol</th><th class="num">HU</th><th>BBD</th><th>Lot</th><th class="hide-sm">Intrat la</th><th class="num hide-sm">Zile</th><th></th></tr></thead><tbody>';
       list.slice(0, fs.limit).forEach(function (s) {
-        h += '<tr><td>' + codeH(s.p) + '</td><td>' + esc(s.wh) + '</td><td>' + (s.loc === C.LOST ? '<span class="pill VOID">Lost</span>' : s.loc ? '<span class="code">' + esc(s.loc) + '</span>' : '<span class="pill UNLOC">fără locație</span>') + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.inTs) + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.lastTs) + '</td><td class="num hide-sm">' + Math.max(0, Math.floor((now - s.inTs) / 86400000)) + '</td><td class="act"><button type="button" class="btn sm" data-act="pal" data-p="' + esc(s.p) + '">Detalii</button></td></tr>';
+        var at = C.attrOf(S.st, s);
+        h += '<tr><td>' + codeH(s.p) + '</td><td>' + esc(s.wh) + '</td><td>' + (s.loc === C.LOST ? '<span class="pill VOID">Lost</span>' : s.loc ? '<span class="code">' + esc(s.loc) + '</span>' : '<span class="pill UNLOC">fără locație</span>') + '</td><td>' + esc(at.art) + '</td><td class="num">' + esc(at.hu) + '</td><td class="nowrap">' + esc(at.bbd) + '</td><td>' + esc(at.batch) + '</td><td class="hide-sm nowrap">' + C.fmtDT(s.inTs) + '</td><td class="num hide-sm">' + Math.max(0, Math.floor((now - s.inTs) / 86400000)) + '</td><td class="act"><button type="button" class="btn sm" data-act="pal" data-p="' + esc(s.p) + '">Detalii</button></td></tr>';
       });
-      if (!list.length) h += '<tr><td colspan="7" class="empty">Niciun palet nu corespunde filtrului.</td></tr>';
+      if (!list.length) h += '<tr><td colspan="10" class="empty">Niciun palet nu corespunde filtrului.</td></tr>';
       h += '</tbody></table></div>';
     } else {
       list = filteredLocs();
@@ -1979,7 +2072,7 @@ td.act{text-align:right;white-space:nowrap}
       var e = S.events[i];
       if (a && e.ts < a) break;
       if (b && e.ts >= b) continue;
-      if (fm.type && e.type !== fm.type) continue;
+      if (fm.type ? e.type !== fm.type : e.type === 'ATTR') continue;
       if (fm.wh && e.wh !== fm.wh && e.fromWh !== fm.wh) continue;
       if (nd && (e.p || '').indexOf(nd.id) < 0 && (e.p || '').indexOf(nd.raw) < 0 && (e.loc || '').indexOf(nd.raw) < 0 && (e.fromLoc || '').indexOf(nd.raw) < 0) continue;
       out.push(e);
@@ -1988,7 +2081,7 @@ td.act{text-align:right;white-space:nowrap}
   }
   function renderMoves() {
     var tOpts = opt('', 'Toate', !fm.type);
-    ['IN', 'OUT', 'MOVE', 'UNLOC', 'PICKMISS', 'VOID'].forEach(function (t) { tOpts += opt(t, C.TYPE_LABEL[t], fm.type === t); });
+    ['IN', 'OUT', 'MOVE', 'UNLOC', 'PICKMISS', 'VOID', 'ATTR'].forEach(function (t) { tOpts += opt(t, C.TYPE_LABEL[t], fm.type === t); });
     $('tab-moves').innerHTML = demoNote() + '<div class="bar">' +
       '<label class="fld grow"><span>Caută palet sau locație</span><input class="inp" id="fmQ" data-f="fm.q" type="search" value="' + esc(fm.q) + '" placeholder="scanează sau tastează" autocomplete="off"></label>' +
       '<button type="button" class="btn sm only-sm" data-act="flt" aria-expanded="' + !!ui.flt + '">' + (ui.flt ? 'Ascunde filtrele' : 'Filtre și export') + '</button><div class="more' + (ui.flt ? ' open' : '') + '">' +
@@ -2125,6 +2218,10 @@ td.act{text-align:right;white-space:nowrap}
       '<div class="btns"><button type="button" class="btn pri" data-act="pick-file" data-for="impFile">Alege fișierul</button><button type="button" class="btn" data-act="tpl">Descarcă șablonul</button></div>' +
       '<input type="file" id="impFile" accept=".xlsx,.xls,.xlsm,.csv,.txt" hidden><p class="muted" style="margin-top:10px">Coloane recunoscute: Tip, Palet (sau SSCC), Depozit, Locație, Data, Destinație, Observații. Doar coloana Palet este obligatorie. Vezi fiecare rând înainte de a confirma.</p></div>' +
 
+      '<div class="card"><h2>Date paleți</h2><p>Încarcă un fișier cu articolul, HU, BBD și lotul fiecărui palet (coloane: SO-ID sau SSCC, Article no., HU, BBD, Batch). Datele se leagă de paleții aflați în stoc și apar în Stoc, în Detalii palet și la Verifică. Un fișier reîncărcat suprascrie doar ce s-a schimbat.</p>' +
+      '<p><b>' + plural(S.st.attrs.size, 'palet cu date', 'paleți cu date') + '</b></p>' +
+      '<div class="btns"><button type="button" class="btn pri" data-act="pick-file" data-for="attrFile">Alege fișierul</button><button type="button" class="btn" data-act="tpl-attr">Descarcă șablonul</button></div><input type="file" id="attrFile" accept=".xlsx,.xls,.xlsm,.csv,.txt" hidden></div>' +
+
       '<div class="card"><h2>' + (sync.user ? 'Copie de siguranță' : 'Transfer între dispozitive') + '</h2><p>' + (sync.user ? 'Dispozitivul este conectat online, deci mișcările ajung singure pe celelalte dispozitive. Fișierul de transfer rămâne util ca o copie de siguranță ținută pe PC.' : 'Cât timp aplicația lucrează fără internet, fiecare dispozitiv își ține propriile date. Ca să le aduni: salvezi fișierul de pe fiecare scanner și îl încarci pe celălalt dispozitiv. Mișcările identice nu se dublează, deci poți încărca același fișier de mai multe ori.') + '</p>' +
       '<p><b>' + (un ? plural(un, 'mișcare nouă', 'mișcări noi') + ' de la ultimul fișier salvat' : (cfg.lastExport ? 'Toate mișcările sunt în ultimul fișier salvat' : 'Încă nu ai salvat niciun fișier')) + '</b>' + (cfg.lastExport ? ' · ultimul fișier: ' + C.fmtDT(cfg.lastExport) : '') + '</p>' +
       '<div class="btns"><button type="button" class="btn pri" data-act="sync-out">Salvează fișierul de transfer</button><button type="button" class="btn" data-act="pick-file" data-for="syncFile">Încarcă fișiere de transfer</button></div>' +
@@ -2163,6 +2260,28 @@ td.act{text-align:right;white-space:nowrap}
       imp = { name: file.name, res: res, onlyBad: false };
       importPreview();
     }).catch(function (e) { $('toast').hidden = true; openDlg('<h2>Fișierul nu a putut fi citit</h2><p>' + esc(e.message || String(e)) + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); });
+  }
+  var aimp = null;
+  function startAttrImport(file) {
+    toast('Citesc fișierul…');
+    readTable(file).then(function (t) {
+      var res = C.buildAttrImport(t.rows, S.st);
+      $('toast').hidden = true;
+      if (res.error) { openDlg('<h2>Fișierul nu poate fi folosit</h2><p>' + esc(res.error) + '</p><div class="foot"><button type="button" class="btn pri" data-act="dlg-x">Am înțeles</button></div>'); return; }
+      aimp = res;
+      var c = res.counts, h = '<h2>Date paleți din ' + esc(file.name) + '</h2>' +
+        '<p><span class="st-ok">' + c.ok + ' de actualizat</span> · <span class="st-dup">' + c.same + ' neschimbați</span> · <span class="st-warn">' + c.nostock + ' nu sunt în stoc</span> · <span class="st-err">' + c.err + ' cu eroare</span></p>' +
+        '<p class="muted">Se salvează doar rândurile „de actualizat". Paleții care nu sunt în stoc sunt săriți; poți reîncărca fișierul după ce intră.</p>' +
+        '<div class="tw" style="max-height:46vh;overflow:auto"><table><thead><tr><th>Rând</th><th>Stare</th><th>Palet</th><th>Articol</th><th class="num">HU</th><th>BBD</th><th>Lot</th><th>Explicație</th></tr></thead><tbody>';
+      var shown = res.items.filter(function (it) { return it.status !== 'same'; }).slice(0, 400);
+      shown.forEach(function (it) {
+        var lab = { ok: 'actualizare', same: 'neschimbat', nostock: 'nu e în stoc', err: 'eroare' }[it.status], cls = { ok: 'st-ok', same: 'st-dup', nostock: 'st-warn', err: 'st-err' }[it.status], a = it.attr || {};
+        h += '<tr><td class="num">' + it.line + '</td><td class="' + cls + '">' + lab + '</td><td>' + (it.p ? codeH(it.p) : '') + '</td><td>' + esc(a.art || '') + '</td><td class="num">' + esc(a.hu || '') + '</td><td class="nowrap">' + esc(a.bbd || '') + '</td><td>' + esc(a.batch || '') + '</td><td>' + esc(it.msg) + '</td></tr>';
+      });
+      if (!shown.length) h += '<tr><td colspan="8" class="empty">Toți paleții din fișier au deja aceste date.</td></tr>';
+      h += '</tbody></table></div><div class="foot"><button type="button" class="btn" data-act="dlg-x">Renunță</button><button type="button" class="btn pri" data-act="attr-go"' + (c.ok ? '' : ' disabled') + '>Salvează ' + plural(c.ok, 'palet', 'paleți') + '</button></div>';
+      openDlg(h, true, function () { aimp = null; });
+    }).catch(function (e) { $('toast').hidden = true; toast('Fișierul nu a putut fi citit: ' + (e.message || e)); });
   }
   function startLocImport(file) {
     readTable(file).then(function (t) {
@@ -2307,13 +2426,17 @@ td.act{text-align:right;white-space:nowrap}
 
   /* ================= detalii palet ================= */
   var pd = null;
+  function attrH(p) {
+    var a = S.st.attrs.get(p); if (!a) return '';
+    return '<div class="attrs">' + [['Articol', a.art], ['HU', a.hu], ['BBD', a.bbd], ['Lot', a.batch]].filter(function (x) { return x[1]; }).map(function (x) { return '<span><small>' + x[0] + '</small>' + esc(x[1]) + '</span>'; }).join('') + '</div>';
+  }
   function palletDlg(p, keepForm) {
     var cur = S.st.stock.get(p), hist = S.events.filter(function (e) { return e.p === p; }).reverse(), g = cur && cur.gs1;
     if (!g) hist.some(function (e) { if (e.gs1) { g = e.gs1; return true; } return false; });
     if (!keepForm || !pd || pd.p !== p) pd = { p: p, form: false, wh: cur ? cur.wh : cfg.wh, loc: '', q: null };
     var h = '<h2>Palet</h2><div class="info"><div class="big-code">' + esc(p) + '</div>' +
       (cur ? '<span class="pill big occ">În stoc</span><p style="margin-top:8px"><b>' + esc(cur.wh) + ' / ' + esc(cur.loc || 'fără locație') + '</b> · intrat la ' + C.fmtDT(cur.inTs) + '</p>' : '<span class="pill big conf">Nu este în stoc</span>') +
-      (g ? '<p class="muted">' + [g.gtin && 'GTIN ' + esc(g.gtin), g.lot && 'lot ' + esc(g.lot), g.exp && 'expiră ' + esc(g.exp), g.prod && 'produs ' + esc(g.prod), g.qty && 'cantitate ' + esc(g.qty)].filter(Boolean).join(' · ') + '</p>' : '') + '</div>';
+      (g ? '<p class="muted">' + [g.gtin && 'GTIN ' + esc(g.gtin), g.lot && 'lot ' + esc(g.lot), g.exp && 'expiră ' + esc(g.exp), g.prod && 'produs ' + esc(g.prod), g.qty && 'cantitate ' + esc(g.qty)].filter(Boolean).join(' · ') + '</p>' : '') + attrH(p) + '</div>';
     if (pd.form) {
       h += '<div class="card" style="margin-top:10px"><h3>' + (cur ? 'Mută paletul' : 'Înregistrează paletul în stoc') + '</h3>' +
         '<label class="fld"><span>Depozit</span><select class="inp" id="pdWh">' + whOpts(pd.wh) + '</select></label>' +
@@ -2376,7 +2499,8 @@ td.act{text-align:right;white-space:nowrap}
       '<div class="card"><h2>Acest dispozitiv</h2><label class="fld"><span>Nume</span><input class="inp" id="setName" data-s="devName" type="text" value="' + esc(cfg.devName) + '" placeholder="ex. Scanner Orkla" autocomplete="off"></label>' +
       '<label class="fld"><span>Depozit activ</span><select class="inp" id="setWh" data-s="wh">' + whOpts(cfg.wh, cfg.wh ? null : 'alege') + '</select></label>' +
       '<p class="muted">10-Days · versiunea ' + VERSION + ' · cod dispozitiv ' + esc(cfg.devId) + '</p>' +
-      '<p class="' + (Store.mem ? 'st-err' : 'muted') + '">' + (Store.mem ? 'Browserul nu permite salvarea datelor. Tot ce introduci se pierde la închidere.' : 'Datele stau pe acest dispozitiv' + (ui.persisted === true ? ', în stocare protejată.' : ui.persisted === false ? '. Browserul nu a acordat stocare protejată: salvează des fișierul de transfer.' : '.')) + '</p></div>' +
+      '<p class="' + (Store.mem ? 'st-err' : 'muted') + '">' + (Store.mem ? 'Browserul nu permite salvarea datelor. Tot ce introduci se pierde la închidere.' : 'Datele stau pe acest dispozitiv' + (ui.persisted === true ? ', în stocare protejată.' : ui.persisted === false ? '. Browserul nu a acordat stocare protejată: salvează des fișierul de transfer.' : '.')) + '</p>' +
+      (cfg.skew ? '<p class="st-warn">Ceasul dispozitivului este cu ' + skewText(cfg.skew) + ' față de server (ora dispozitivului: ' + C.fmtT(Date.now()) + ', ora serverului: ' + C.fmtT(nowSrv()) + '). Ora mișcărilor se corectează automat. Setează ora automată în Android: Setări → Sistem → Data și ora.</p>' : '') + '</div>' +
 
       (sync.on ? '<div class="card"><h2>Sincronizare online</h2><p>Stare: <b class="' + (syncState().c === 'ok' ? 'st-ok' : syncState().c === 'bad' ? 'st-err' : 'st-warn') + '">' + syncState().t + '</b></p><div class="btns"><button type="button" class="btn' + (sync.user ? '' : ' pri') + '" data-act="sync-dlg">' + (sync.user ? 'Detalii' : 'Conectează dispozitivul') + '</button></div></div>' : '') +
       '<div class="card"><h2>Scanare</h2>' +
@@ -2501,6 +2625,13 @@ td.act{text-align:right;white-space:nowrap}
         });
       });
     },
+    'tpl-attr': function () { exportTable('sablon-date-paleti', [{ name: 'Date', aoa: C.attrTemplateAOA() }], 'xlsx'); },
+    'attr-go': function () {
+      if (!aimp) return;
+      var n = aimp.specs.length;
+      addEvents(aimp.specs, 'import', false).then(function () { closeDlg(); renderTab(); toast('Date salvate pentru ' + plural(n, 'palet', 'paleți') + '.'); })
+        .catch(function (e) { toast('Salvarea a eșuat: ' + (e.message || e)); });
+    },
     'tpl-ord': function () { exportTable('sablon-comanda', [{ name: 'Comanda', aoa: C.orderTemplateAOA() }], 'xlsx'); },
     'ord-create': function () {
       if (!oimp || !sync.remote || !sync.user) return;
@@ -2560,14 +2691,14 @@ td.act{text-align:right;white-space:nowrap}
     'more-moves': function () { fm.limit += 600; renderMovesBody(); },
     'x-stock': function (el) {
       var fmt = el.getAttribute('data-fmt');
-      if (fs.view === 'p') exportTable('stoc-paleti', [{ name: 'Stoc', aoa: C.stockAOA(filteredStock(), Date.now()) }], fmt);
+      if (fs.view === 'p') exportTable('stoc-paleti', [{ name: 'Stoc', aoa: C.stockAOA(filteredStock(), Date.now(), S.st) }], fmt);
       else exportTable('locatii', [{ name: 'Locatii', aoa: C.locsAOA(filteredLocs()) }], fmt);
     },
     'x-moves': function (el) { exportTable('miscari', [{ name: 'Miscari', aoa: C.movesAOA(filteredMoves(), S.st, S.byId) }], el.getAttribute('data-fmt')); },
     'x-all': function () {
       exportTable('raport-stoc', [
-        { name: 'Stoc', aoa: C.stockAOA(C.stockList(S.st), Date.now()) },
-        { name: 'Miscari', aoa: C.movesAOA(S.events.slice().reverse(), S.st, S.byId) },
+        { name: 'Stoc', aoa: C.stockAOA(C.stockList(S.st), Date.now(), S.st) },
+        { name: 'Miscari', aoa: C.movesAOA(S.events.filter(function (e) { return e.type !== 'ATTR'; }).reverse(), S.st, S.byId) },
         { name: 'Locatii', aoa: C.locsAOA(C.locationList(S.st, groundFn)) }], 'xlsx');
     },
     'tpl': function () { exportTable('sablon-import-miscari', [{ name: 'Miscari', aoa: C.templateAOA() }], 'xlsx'); },
@@ -2686,6 +2817,7 @@ td.act{text-align:right;white-space:nowrap}
         if (!el.files || !el.files.length) return;
         if (el.id === 'impFile') startImport(el.files[0]);
         else if (el.id === 'ordFile') startOrderImport(el.files[0]);
+        else if (el.id === 'attrFile') startAttrImport(el.files[0]);
         else if (el.id === 'locFile') startLocImport(el.files[0]);
         else if (el.id === 'syncFile') syncIn(el.files);
         return;
