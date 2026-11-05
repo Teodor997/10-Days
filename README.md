@@ -1,4 +1,4 @@
-# 10-Days — versiunea 1.3.0
+# 10-Days — versiunea 1.4.0
 
 Evidența paleților pe locații, pentru depozitele Orkla și Douglas, prin scanare cu Zebra MC3300x. Aceeași aplicație rulează pe scanner și pe PC. Scanarea merge mereu, cu sau fără internet. Cât timp fișierul `config.js` nu conține o configurație Firebase, aplicația lucrează doar local și datele se adună prin fișiere de transfer. Cu Firebase configurat, mișcările ajung în timp real pe toate dispozitivele conectate (secțiunea 9).
 
@@ -104,7 +104,9 @@ Scanarea într-o comandă merge și fără semnal, dacă comanda a fost deja pri
 ## 5. Pe PC
 
 - **Stoc** și **Mișcări** arată depozitul activ, cel ales în stânga sus. Când schimbi depozitul, se schimbă și ce vezi. Pentru o privire de ansamblu, alege „Toate" la filtrul Depozit.
-- **Stoc**: paleții, cu filtrare și căutare; vederea „Locații" arată locațiile libere, ocupate și conflictele. Export Excel sau CSV pentru ce este filtrat.
+- **Stoc** (pe PC) lucrează ca o foaie de calcul: fiecare coloană are un filtru sub antet (Palet, Locație, Articol, HU, BBD, Lot; Articol, BBD și Lot oferă și lista valorilor existente), filtrele se combină, iar un click pe antet sortează crescător/descrescător. Butonul × șterge filtrele. Exportul Excel/CSV conține exact rândurile filtrate.
+- **Comandă din selecție**: bifezi paleții (sau bifa din antet pentru toți cei filtrați), selecția se păstrează când schimbi filtrele, apoi **Creează comandă**: dai numărul și destinația și comanda ajunge pe scannere ca una încărcată din fișier. Paleții din depozite diferite devin comenzi separate cu același număr; paleții de pe Lost sunt excluși.
+- Vederea „Locații" arată locațiile libere, ocupate și conflictele.
 - **Mișcări**: jurnalul, cu filtre pe perioadă, tip și depozit, export și anulare. Un transfer între depozite apare la amândouă.
 - **Date → Import mișcări**: încarcă intrări, ieșiri și mutări din Excel sau CSV. Stocul inițial se încarcă la fel (un rând pe palet). Înainte de import vezi fiecare rând cu starea lui.
 - **Date → Date paleți**: încarcă un fișier cu `SO-ID` (sau `SSCC`), `Article no.`, `HU`, `BBD`, `Batch`. Datele se leagă de paleții aflați în stoc (paleții care nu sunt în stoc sunt săriți) și apar în Stoc, în Detalii palet, la Verifică pe scanner și în exporturi. Un fișier reîncărcat rescrie doar valorile schimbate; ultima încărcare câștigă. Căutarea din Stoc merge și după articol sau lot.
